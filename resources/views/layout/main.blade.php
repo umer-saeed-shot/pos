@@ -51,11 +51,11 @@
     <script type="text/javascript" src="<?php echo asset('public/vendor/popper.js/umd/popper.min.js') ?>">
     </script>
     <script type="text/javascript" src="<?php echo asset('public/vendor/bootstrap/js/bootstrap.min.js') ?>"></script>
-	
+
 	<script type="text/javascript" src="<?php echo asset('public/vendor/bootstrap/js/dataTables.dateTime.min.js') ?>"></script>
     <script type="text/javascript" src="<?php echo asset('public/vendor/bootstrap-toggle/js/bootstrap-toggle.min.js') ?>"></script>
     <script type="text/javascript" src="<?php echo asset('public/vendor/bootstrap/js/bootstrap-select.min.js') ?>"></script>
-    <script type="text/javascript" src="<?php echo asset('public/vendor/keyboard/js/jquery.keyboard.js') ?>"></script>  
+    <script type="text/javascript" src="<?php echo asset('public/vendor/keyboard/js/jquery.keyboard.js') ?>"></script>
     <script type="text/javascript" src="<?php echo asset('public/vendor/keyboard/js/jquery.keyboard.extension-autocomplete.js') ?>"></script>
     <script type="text/javascript" src="<?php echo asset('public/js/grasp_mobile_progress_circle-1.0.0.min.js') ?>"></script>
     <script type="text/javascript" src="<?php echo asset('public/vendor/jquery.cookie/jquery.cookie.js') ?>">
@@ -70,7 +70,7 @@
     <script type="text/javascript" src="<?php echo asset('public/vendor/daterange/js/daterangepicker.min.js') ?>"></script>
     <script type="text/javascript" src="<?php echo asset('public/vendor/tinymce/js/tinymce/tinymce.min.js') ?>"></script>
     <script type="text/javascript" src="<?php echo asset('public/js/dropzone.js') ?>"></script>
-    
+
     <!-- table sorter js-->
     <script type="text/javascript" src="<?php echo asset('public/vendor/datatable/pdfmake.min.js') ?>"></script>
     <script type="text/javascript" src="<?php echo asset('public/vendor/datatable/vfs_fonts.js') ?>"></script>
@@ -86,11 +86,11 @@
     <script type="text/javascript" src="<?php echo asset('public/vendor/datatable/dataTables.checkboxes.min.js') ?>"></script>
     <script type="text/javascript" src="https://cdn.datatables.net/fixedheader/3.1.6/js/dataTables.fixedHeader.min.js"></script>
     <script type="text/javascript" src="https://cdn.datatables.net/responsive/2.2.3/js/dataTables.responsive.min.js"></script>
-    <script type="text/javascript" src="https://cdn.datatables.net/responsive/2.2.3/js/responsive.bootstrap.min.js"></script> 
+    <script type="text/javascript" src="https://cdn.datatables.net/responsive/2.2.3/js/responsive.bootstrap.min.js"></script>
     <!-- Custom stylesheet - for your changes-->
     <link rel="stylesheet" href="<?php echo asset('public/css/custom-'.$general_setting->theme) ?>" type="text/css" id="custom-style">
   </head>
-  
+
   <body onLoad="myFunction()">
     <div id="loader"></div>
       <!-- Side Navbar -->
@@ -99,8 +99,8 @@
           <!-- Sidebar Header    -->
           <!-- Sidebar Navigation Menus-->
           <div class="main-menu">
-            <ul id="side-main-menu" class="side-menu list-unstyled">                  
-              
+            <ul id="side-main-menu" class="side-menu list-unstyled">
+
                <?php
                   $role = DB::table('roles')->find(Auth::user()->role_id);
                   $category_permission_active = DB::table('permissions')
@@ -132,7 +132,7 @@
                         ['role_id', $role->id]
                     ])->first();
               ?>
-              <?php 
+              <?php
                 $sale_index_permission = DB::table('permissions')->where('name', 'sales-index')->first();
                 $sale_index_permission_active = DB::table('role_has_permissions')->where([
                         ['permission_id', $sale_index_permission->id],
@@ -168,7 +168,7 @@
                     <?php $mksale='true'; ?>
                     <li id="makesale"><a href="{{route('sale.pos')}}"> <i class="fa fa-dollar"></i><span>{{ __('file.makesale') }}</span></a></li>
                     @endif
-                @endif    
+                @endif
               <!--<li><a href="{{url('/')}}"> <i class="dripicons-meter"></i><span>{{ __('file.dashboard') }}</span></a></li>-->
               <?php
                 $profit_loss_active = DB::table('permissions')
@@ -250,7 +250,7 @@
                 $supplier_report_active = DB::table('permissions')
                       ->join('role_has_permissions', 'permissions.id', '=', 'role_has_permissions.permission_id')
                       ->where([
-                        ['permissions.name', 'supplier-report'], 
+                        ['permissions.name', 'supplier-report'],
                         ['role_id', $role->id] ])->first();
                 $due_report_active = DB::table('permissions')
                       ->join('role_has_permissions', 'permissions.id', '=', 'role_has_permissions.permission_id')
@@ -258,7 +258,7 @@
                         ['permissions.name', 'due-report'],
                         ['role_id', $role->id] ])->first();
                   $customer_index_permission = DB::table('permissions')->where('name', 'customers-index')->first();
-                  
+
                   $customer_index_permission_active = DB::table('role_has_permissions')->where([
                             ['permission_id', $customer_index_permission->id],
                             ['role_id', $role->id]
@@ -274,13 +274,13 @@
               @if($category_permission_active || $index_permission_active || $print_barcode_active || $stock_count_active || $adjustment_active)
               <li><a href="#product" aria-expanded="false" data-toggle="collapse"> <i class="dripicons-list"></i><span>{{__('file.product')}}</span><span></a>
                 <ul id="product" class="collapse list-unstyled ">
-                  
+
                   @if($category_permission_active)
                   <li id="category-menu"><a href="{{route('category.index')}}">{{__('file.category')}}</a></li>
                   @endif
                   @if($index_permission_active)
                   <li id="product-list-menu"><a href="{{route('products.index')}}">{{__('file.product_list')}}</a></li>
-                  <?php 
+                  <?php
                     $add_permission = DB::table('permissions')->where('name', 'products-add')->first();
                     $add_permission_active = DB::table('role_has_permissions')->where([
                         ['permission_id', $add_permission->id],
@@ -301,7 +301,7 @@
                   @if($stock_count_active)
                     <li id="stock-count-menu"><a href="{{route('stock-count.index')}}">{{trans('file.Stock Count')}}</a></li>
                   @endif
-                  <?php 
+                  <?php
                 $index_permission = DB::table('permissions')->where('name', 'purchases-index')->first();
                   $index_permission_active = DB::table('role_has_permissions')->where([
                         ['permission_id', $index_permission->id],
@@ -312,7 +312,7 @@
               <li><a href="#purchase" aria-expanded="false" data-toggle="collapse"> <i class="dripicons-card"></i><span>{{trans('file.Purchase')}}</span></a>
                 <ul id="purchase" class="collapse list-unstyled ">
                   <li id="purchase-list-menu"><a href="{{route('purchases.index')}}">{{trans('file.Purchase List')}}</a></li>
-                  <?php 
+                  <?php
                     $add_permission = DB::table('permissions')->where('name', 'purchases-add')->first();
                     $add_permission_active = DB::table('role_has_permissions')->where([
                         ['permission_id', $add_permission->id],
@@ -339,7 +339,7 @@
                   @endif
                   @endif
 				        </ul>
-			        </li>		
+			        </li>
 			  @endif
               @if($sale_index_permission_active || $gift_card_permission_active || $coupon_permission_active || $delivery_permission_active)
               <li><a class="javid" href="#sale" aria-expanded="false" data-toggle="collapse"> <i class="dripicons-cart"></i><span>{{trans('file.Sale')}}</span></a>
@@ -367,14 +367,14 @@
               </li>
               @endif
 
-			  
-             
 
 
 
 
-         
-              <?php 
+
+
+
+              <?php
                 $index_permission = DB::table('permissions')->where('name', 'quotes-index')->first();
                 $index_permission_active = DB::table('role_has_permissions')->where([
                         ['permission_id', $index_permission->id],
@@ -382,23 +382,23 @@
                     ])->first();
               ?>
 
-              <?php 
+              <?php
                 $sale_return_index_permission = DB::table('permissions')->where('name', 'returns-index')->first();
-                
+
                 $sale_return_index_permission_active = DB::table('role_has_permissions')->where([
                         ['permission_id', $sale_return_index_permission->id],
                         ['role_id', $role->id]
                     ])->first();
-                
+
                 $purchase_return_index_permission = DB::table('permissions')->where('name', 'purchase-return-index')->first();
-                
+
                 $purchase_return_index_permission_active = DB::table('role_has_permissions')->where([
                             ['permission_id', $purchase_return_index_permission->id],
                             ['role_id', $role->id]
                         ])->first();
               ?>
 
-              <?php 
+              <?php
                 $department = DB::table('permissions')->where('name', 'department')->first();
                 $department_active = DB::table('role_has_permissions')->where([
                         ['permission_id', $department->id],
@@ -437,8 +437,8 @@
                   <li id="payroll-menu"><a href="{{route('payroll.index')}}">{{trans('file.Payroll')}}</a></li>
                   @endif
                   <li id="holiday-menu"><a href="{{route('holidays.index')}}">{{trans('file.Holiday')}}</a></li>
-                
-              <?php 
+
+              <?php
                   $user_index_permission_active = DB::table('permissions')
                       ->join('role_has_permissions', 'permissions.id', '=', 'role_has_permissions.permission_id')
                       ->where([
@@ -448,14 +448,14 @@
 
 
                   $biller_index_permission = DB::table('permissions')->where('name', 'billers-index')->first();
-                  
+
                   $biller_index_permission_active = DB::table('role_has_permissions')->where([
                             ['permission_id', $biller_index_permission->id],
                             ['role_id', $role->id]
                         ])->first();
 
                   $supplier_index_permission = DB::table('permissions')->where('name', 'suppliers-index')->first();
-                  
+
                   $supplier_index_permission_active = DB::table('role_has_permissions')->where([
                             ['permission_id', $supplier_index_permission->id],
                             ['role_id', $role->id]
@@ -464,7 +464,7 @@
               @if($user_index_permission_active  || $biller_index_permission_active || $supplier_index_permission_active)
               <li><a href="#people" aria-expanded="false" data-toggle="collapse"> <i class="dripicons-user"></i><span>{{trans('file.People')}}</span></a>
                 <ul id="people" class="collapse list-unstyled ">
-                  
+
                   @if($user_index_permission_active)
                   <li id="user-list-menu"><a href="{{route('user.index')}}">{{trans('file.User List')}}</a></li>
                   <?php $user_add_permission_active = DB::table('permissions')
@@ -477,10 +477,10 @@
                   <li id="user-create-menu"><a href="{{route('user.create')}}">{{trans('file.Add User')}}</a></li>
                   @endif
                   @endif
-                  
+
                   @if($biller_index_permission_active)
                   <li id="biller-list-menu"><a href="{{route('biller.index')}}">{{trans('file.Biller List')}}</a></li>
-                  <?php 
+                  <?php
                     $biller_add_permission = DB::table('permissions')->where('name', 'billers-add')->first();
                     $biller_add_permission_active = DB::table('role_has_permissions')->where([
                         ['permission_id', $biller_add_permission->id],
@@ -491,10 +491,10 @@
                   <li id="biller-create-menu"><a href="{{route('biller.create')}}">{{trans('file.Add Biller')}}</a></li>
                   @endif
                   @endif
-                  
+
                   @if($supplier_index_permission_active)
                   <li id="supplier-list-menu"><a href="{{route('supplier.index')}}">{{trans('file.Supplier List')}}</a></li>
-                  <?php 
+                  <?php
                     $supplier_add_permission = DB::table('permissions')->where('name', 'suppliers-add')->first();
                     $supplier_add_permission_active = DB::table('role_has_permissions')->where([
                         ['permission_id', $supplier_add_permission->id],
@@ -506,7 +506,7 @@
                   @endif
                   @endif
 				</ul>
-				
+
 				</li>
               @endif
 
@@ -630,7 +630,7 @@
               @endif
 
 
-              <?php 
+              <?php
                 $index_permission = DB::table('permissions')->where('name', 'account-index')->first();
                 $index_permission_active = DB::table('role_has_permissions')->where([
                         ['permission_id', $index_permission->id],
@@ -673,20 +673,20 @@
                   <li id="account-statement-menu"><a id="account-statement" href="">{{trans('file.Account Statement')}}</a></li>
                   @endif
 
-                  <?php 
+                  <?php
                 $index_permission = DB::table('permissions')->where('name', 'expenses-index')->first();
                 $index_permission_active = DB::table('role_has_permissions')->where([
                         ['permission_id', $index_permission->id],
                         ['role_id', $role->id]
                     ])->first();
               ?>
-          
+
               @if($index_permission_active)
               <li><a href="#expense" aria-expanded="false" data-toggle="collapse"> <i class="dripicons-wallet"></i><span>{{trans('file.Expense')}}</span></a>
                 <ul id="expense" class="collapse list-unstyled ">
                   <li id="exp-cat-menu"><a href="{{route('expense_categories.index')}}">{{trans('file.Expense Category')}}</a></li>
                   <li id="exp-list-menu"><a href="{{route('expenses.index')}}">{{trans('file.Expense List')}}</a></li>
-                  <?php 
+                  <?php
                     $add_permission = DB::table('permissions')->where('name', 'expenses-add')->first();
                     $add_permission_active = DB::table('role_has_permissions')->where([
                         ['permission_id', $add_permission->id],
@@ -718,8 +718,8 @@
 			  </ul>
               </li>
               @endif
-              
-              
+
+
               <li><a href="#setting" aria-expanded="false" data-toggle="collapse"> <i class="dripicons-gear"></i><span>{{trans('file.settings')}}</span></a>
                 <ul id="setting" class="collapse list-unstyled ">
                   <?php
@@ -868,16 +868,16 @@
             <div class="navbar-holder d-flex align-items-center justify-content-between">
               <a id="toggle-btn" href="#" class="menu-btn" style="display:none;"><i class="fa fa-bars"> </i></a>
               <div class="" style="padding: 0 7px 0 10px;">
-                <a class="dropdown-item btn-home btn-sm" href="{{url('/')}}"><i class="dripicons-home"></i><span> Home</span></a> 
+                <a class="dropdown-item btn-home btn-sm" href="{{url('/')}}"><i class="dripicons-home"></i><span> Home</span></a>
               </div>
               <!--<ul class="nav-menu list-unstyled d-flex flex-md-row align-items-md-center">
                 <li class="nav-item"><a class="dropdown-item btn-pos btn-sm" href="{{route('sale.pos')}}"><i class="dripicons-shopping-bag"></i><span> POS</span></a></li>
                 <li class="nav-item"><a id="btnFullscreen"><i class="dripicons-expand"></i></a></li>
               </ul>-->
               <span class="brand-big">@if($general_setting->site_logo)<img src="{{url('public/logo', $general_setting->site_logo)}}" width="50">&nbsp;&nbsp;@endif<a href="{{url('/')}}"><h1 class="d-inline">{{$general_setting->site_title}}</h1></a></span>
-              
+
               <ul class="nav-menu list-unstyled d-flex flex-md-row align-items-md-center">
-                <?php 
+                <?php
                   $add_permission = DB::table('permissions')->where('name', 'sales-add')->first();
                   $add_permission_active = DB::table('role_has_permissions')->where([
                       ['permission_id', $add_permission->id],
@@ -892,7 +892,7 @@
                 ?>
                 @if($add_permission_active)
                 <li class="nav-item"><a class="dropdown-item btn-pos btn-sm" href="{{route('sale.pos')}}"><i class="dripicons-shopping-bag"></i><span> POS</span></a></li>
-                @endif      
+                @endif
                 <li class="nav-item"><a id="btnFullscreen"><i class="dripicons-expand"></i></a></li>
                 @if(\Auth::user()->role_id <= 2)
                   <li class="nav-item"><a href="{{route('cashRegister.index')}}" title="{{trans('file.Cash Register List')}}"><i class="dripicons-archive"></i></a></li>
@@ -975,7 +975,7 @@
                       </ul>
                 </li>
                 @if(Auth::user()->role_id != 5)
-                <li class="nav-item"> 
+                <li class="nav-item">
                     <a class="dropdown-item" href="{{ url('read_me') }}" target="_blank"><i class="dripicons-information"></i> {{trans('file.Help')}}</a>
                 </li>
                 @endif
@@ -983,19 +983,19 @@
                   <a rel="nofollow" data-target="#" href="#" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" class="nav-link dropdown-item"><i class="dripicons-user"></i> <span>{{ucfirst(Auth::user()->name)}}</span> <i class="fa fa-angle-down"></i>
                   </a>
                   <ul class="dropdown-menu edit-options dropdown-menu-right dropdown-default" user="menu">
-                      <li> 
+                      <li>
                         <a href="{{route('user.profile', ['id' => Auth::id()])}}"><i class="dripicons-user"></i> {{trans('file.profile')}}</a>
                       </li>
                       @if($general_setting_permission_active)
-                      <li> 
+                      <li>
                         <a href="{{route('setting.general')}}"><i class="dripicons-gear"></i> {{trans('file.settings')}}</a>
                       </li>
                       @endif
-                      <li> 
+                      <li>
                         <a href="{{url('my-transactions/'.date('Y').'/'.date('m'))}}"><i class="dripicons-swap"></i> {{trans('file.My Transaction')}}</a>
                       </li>
                       @if(Auth::user()->role_id != 5)
-                      <li> 
+                      <li>
                         <a href="{{url('holidays/my-holiday/'.date('Y').'/'.date('m'))}}"><i class="dripicons-vibrate"></i> {{trans('file.My Holiday')}}</a>
                       </li>
                       @endif
@@ -1015,7 +1015,7 @@
                         </form>
                       </li>
                   </ul>
-                </li> 
+                </li>
               </ul>
             </div>
           </div>
@@ -1035,7 +1035,7 @@
                   <p class="italic"><small>{{trans('file.The field labels marked with * are required input fields')}}.</small></p>
                     {!! Form::open(['route' => 'notifications.store', 'method' => 'post']) !!}
                       <div class="row">
-                          <?php 
+                          <?php
                               $lims_user_list = DB::table('users')->where([
                                 ['is_active', true],
                                 ['id', '!=', \Auth::user()->id]
@@ -1074,7 +1074,7 @@
                 <div class="modal-body">
                   <p class="italic"><small>{{trans('file.The field labels marked with * are required input fields')}}.</small></p>
                     {!! Form::open(['route' => 'expenses.store', 'method' => 'post']) !!}
-                    <?php 
+                    <?php
                       $lims_expense_category_list = DB::table('expense_categories')->where('is_active', true)->get();
                       if(Auth::user()->role_id > 2)
                         $lims_warehouse_list = DB::table('warehouses')->where([
@@ -1084,7 +1084,7 @@
                       else
                         $lims_warehouse_list = DB::table('warehouses')->where('is_active', true)->get();
                       $lims_account_list = \App\Account::where('is_active', true)->get();
-                    
+
                     ?>
                       <div class="row">
                         <div class="col-md-6 form-group">
@@ -1226,7 +1226,7 @@
                 <div class="modal-body">
                   <p class="italic"><small>{{trans('file.The field labels marked with * are required input fields')}}.</small></p>
                     {!! Form::open(['route' => 'report.warehouse', 'method' => 'post']) !!}
-                    <?php 
+                    <?php
                       $lims_warehouse_list = DB::table('warehouses')->where('is_active', true)->get();
                     ?>
                       <div class="form-group">
@@ -1261,7 +1261,7 @@
                 <div class="modal-body">
                   <p class="italic"><small>{{trans('file.The field labels marked with * are required input fields')}}.</small></p>
                     {!! Form::open(['route' => 'report.user', 'method' => 'post']) !!}
-                    <?php 
+                    <?php
                       $lims_user_list = DB::table('users')->where('is_active', true)->get();
                     ?>
                       <div class="form-group">
@@ -1296,7 +1296,7 @@
                 <div class="modal-body">
                   <p class="italic"><small>{{trans('file.The field labels marked with * are required input fields')}}.</small></p>
                     {!! Form::open(['route' => 'report.customer', 'method' => 'post']) !!}
-                    <?php 
+                    <?php
                       $lims_customer_list = DB::table('customers')->where('is_active', true)->get();
                     ?>
                       <div class="form-group">
@@ -1331,7 +1331,7 @@
                 <div class="modal-body">
                   <p class="italic"><small>{{trans('file.The field labels marked with * are required input fields')}}.</small></p>
                     {!! Form::open(['route' => 'report.supplier', 'method' => 'post']) !!}
-                    <?php 
+                    <?php
                       $lims_supplier_list = DB::table('suppliers')->where('is_active', true)->get();
                     ?>
                       <div class="form-group">
@@ -1354,7 +1354,7 @@
             </div>
         </div>
       </div>
-      
+
       <div style="display:none" id="content" class="animate-bottom">
           @yield('content')
       </div>
@@ -1384,7 +1384,7 @@
         }
     </script>
     <script type="text/javascript">
-      
+
       var alert_product = <?php echo json_encode($alert_product) ?>;
 
       if ($(window).outerWidth() > 1199) {
@@ -1412,12 +1412,12 @@
               $("span.notification-number").text(alert_product);
           });
       });
-      
+
       $("a#add-expense").click(function(e){
         e.preventDefault();
         $('#expense-modal').modal();
       });
-     
+
       $("a#send-notification").click(function(e){
         e.preventDefault();
         $('#notification-modal').modal();
@@ -1512,25 +1512,25 @@
       if(eee == 'https://pos.911gadgets.com/customer/create')
       {
         $("#customer-create-menu").addClass("active");
-        $("#customer").addClass("show"); 
+        $("#customer").addClass("show");
         $('.cust').attr("aria-expanded","true");
       }
       else if(eee == 'https://pos.911gadgets.com/customer')
       {
         $("#customer-list-menu").addClass("active");
-        $("#customer").addClass("show"); 
+        $("#customer").addClass("show");
         $('.cust').attr("aria-expanded","true");
       }
       else
       {
           $("#customer-create-menu").removeClass("active");
         $("#customer-list-menu").removeClass("active");
-        $("#customer").removeClass("show"); 
-        $('.cust').attr("aria-expanded","false");  
+        $("#customer").removeClass("show");
+        $('.cust').attr("aria-expanded","false");
       }
-      
+
     });
-     
+
     </script>
   </body>
 </html>

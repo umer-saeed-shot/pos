@@ -1,7 +1,8 @@
 @extends('layout.main') @section('content')
 @if(session()->has('not_permitted'))
-  <div class="alert alert-danger alert-dismissible text-center"><button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>{{ session()->get('not_permitted') }}</div> 
+  <div class="alert alert-danger alert-dismissible text-center"><button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>{{ session()->get('not_permitted') }}</div>
 @endif
+
 <section class="forms">
     <div class="container-fluid">
         <div class="row">
@@ -12,7 +13,9 @@
                     </div>
                     <div class="card-body">
                         <p class="italic"><small>{{trans('file.The field labels marked with * are required input fields')}}.</small></p>
+
                         {!! Form::open(['route' => ['sales.update', $lims_sale_data->id], 'method' => 'put', 'files' => true, 'id' => 'payment-form']) !!}
+
                         <div class="row">
                             <div class="col-md-12">
                                 <div class="row">
@@ -67,6 +70,7 @@
                                         </div>
                                     </div>
                                 </div>
+
                                 <div class="row mt-5">
                                     <div class="col-md-12">
                                         <h5>{{trans('file.Order Table')}} *</h5>
@@ -85,14 +89,14 @@
                                                     </tr>
                                                 </thead>
                                                 <tbody>
-                                                    <?php 
+                                                    <?php
                                                     $temp_unit_name = [];
                                                     $temp_unit_operator = [];
                                                     $temp_unit_operation_value = [];
                                                     ?>
                                                     @foreach($lims_product_sale_data as $product_sale)
                                                     <tr>
-                                                    <?php 
+                                                    <?php
                                                         $product_data = DB::table('products')->find($product_sale->product_id);
                                                         if($product_sale->variant_id){
                                                             $product_variant_data = \App\ProductVariant::select('id', 'item_code')->FindExactProduct($product_data->id, $product_sale->variant_id)->first();
@@ -114,7 +118,7 @@
                                                         $unit_operation_value = array();
                                                         if($product_data->type == 'standard'){
                                                             $units = DB::table('units')->where('base_unit', $product_data->unit_id)->orWhere('id', $product_data->unit_id)->get();
-                                
+
                                                             foreach($units as $unit) {
                                                                 if($product_sale->sale_unit_id == $unit->id) {
                                                                     array_unshift($unit_name, $unit->unit_name);
@@ -266,7 +270,7 @@
                                 <div class="row">
                                     <div class="col-md-4">
                                         <div class="form-group">
-                                            <label>{{trans('file.Attach Document')}}</label> <i class="dripicons-question" data-toggle="tooltip" title="Only jpg, jpeg, png, gif, pdf, csv, docx, xlsx and txt file is supported"></i> 
+                                            <label>{{trans('file.Attach Document')}}</label> <i class="dripicons-question" data-toggle="tooltip" title="Only jpg, jpeg, png, gif, pdf, csv, docx, xlsx and txt file is supported"></i>
                                             <input type="file" name="document" class="form-control" />
                                             @if($errors->has('extension'))
                                                 <span>
@@ -531,7 +535,7 @@ $.get('../getproduct/' + id, function(data) {
     product_list = data[5];
     qty_list = data[6];
     product_warehouse_price = data[7];
-    
+
     $.each(product_code, function(index) {
         if(exist_code.includes(product_code[index])) {
             pos = exist_code.indexOf(product_code[index]);
@@ -748,7 +752,7 @@ function productSearch(data){
                 else {
                     product_price.push(parseFloat(data[2] * currency['exchange_rate']) + parseFloat(data[2] * currency['exchange_rate'] * customer_group_rate));
                 }
-                
+
                 product_discount.push('0.00');
                 tax_rate.push(parseFloat(data[3]));
                 tax_name.push(data[4]);
@@ -841,12 +845,12 @@ function checkQuantity(sale_qty, flag) {
             }
         });
     }
-    
+
     if(!flag){
         $('#editModal').modal('hide');
         $('table.order-list tbody tr:nth-child(' + (rowindex + 1) + ')').find('.qty').val(sale_qty);
     }
-        
+
     calculateRowProductData(sale_qty);
 }
 

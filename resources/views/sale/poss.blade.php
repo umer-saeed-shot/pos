@@ -978,11 +978,11 @@
                                     <div class="row">
                                         <div class="col-md-6 mt-1">
                                             <label>{{trans('file.Recieved Amount')}} *</label>
-                                            <input type="text" name="paying_amount" class="form-control numkey paying_amount" required step="any">
+                                            <input type="text" name="paying_amount" class="form-control numkey paying_amount" required step="any" autocomplete="off">
                                         </div>
                                         <div class="col-md-6 mt-1">
                                             <label>{{trans('file.Paying Amount')}} *</label>
-                                            <input type="text" name="paid_amount" class="form-control numkey paid_amount" step="any" readonly>
+                                            <input type="text" name="paid_amount" class="form-control numkey paid_amount" step="any" readonly >
                                         </div>
                                         <div class="col-md-6 mt-1">
                                             <label class="chnagelbl">{{trans('file.Change')}} : </label>
@@ -1546,11 +1546,11 @@
                                                 <?php $customer = DB::table('customers')->find($draft->customer_id); ?>
                                                 <!--<tr data-toggle="modal" data-target="#add-paymentt">-->
 												   <!--<tr class='clickable-row' data-href='{{url('sales/'.$draft->id.'/create') }}'>data-href='{{url('sales/'.$draft->id.'/edit') }}'-->
-												   <tr class='clickable-row'  onclick="getHeldProduct({{ $draft->id }})">
-                                                    <td>{{date('d-m-Y', strtotime($draft->created_at))}}</td>
-                                                    <td>{{$draft->reference_no}}</td>
-                                                    <td>{{$customer->name}}</td>
-                                                    <td>{{$draft->grand_total}}</td>
+												   <tr class='clickable-row'  >
+                                                    <td onclick="getHeldProduct({{ $draft->id }})">{{date('d-m-Y', strtotime($draft->created_at))}}</td>
+                                                    <td onclick="getHeldProduct({{ $draft->id }})">{{$draft->reference_no}}</td>
+                                                    <td onclick="getHeldProduct({{ $draft->id }})">{{$customer->name}}</td>
+                                                    <td onclick="getHeldProduct({{ $draft->id }})">{{$draft->grand_total}}</td>
                                                     <td>
                                                    <div class="btn-group">
                                                     <a href="{{ route('sales.edit', $draft->id) }}" class="btn btn-success btn-sm" title="Edit" style=" padding: 0px 8px;  margin: 0px 5px; height: 31px;"><i class="dripicons-document-edit"></i></a>
@@ -2483,8 +2483,11 @@
     });
 
 
-    $("#submit-btn").on("click", function() {
+    $("#submit-btn").on("click", function(e) {
         var compare = $('select[name="paid_by_id_select"]').val();
+        var paying = $('.paying_amount').val();
+        var paid = $('.paid_amount').val();
+
         // $('.payment-form').submit();
 
         if(compare == 3)
@@ -2520,7 +2523,11 @@
          }
         else
         {
-            $('.payment-form').submit();
+            if(parseFloat(paying) < parseFloat(paid)){
+                changeGrandTotal(parseFloat(paid) - parseFloat(paying));
+            }else{
+                $('.payment-form').submit();
+            }
         }
 
     });
@@ -2877,6 +2884,7 @@
                     else if (value['type'] == 'fixed') {
                         if (parseFloat($('input[name="grand_total"]').val()) >= value['minimum_amount']) {
                             $('input[name="grand_total"]').val($('input[name="grand_total"]').val() - value['amount']);
+
                             $('#grand-total').text(parseFloat($('input[name="grand_total"]').val()).toFixed(2));
                             if (!$('input[name="coupon_active"]').val())
                                 alert('Congratulation! You got ' + value['amount'] + ' ' + currency + ' discount');
@@ -2894,6 +2902,7 @@
                         var coupon_discount = grand_total * (value['amount'] / 100);
                         grand_total = grand_total - coupon_discount;
                         $('input[name="grand_total"]').val(grand_total);
+
                         $('#grand-total').text(parseFloat(grand_total).toFixed(2));
                         if (!$('input[name="coupon_active"]').val())
                             alert('Congratulation! You got ' + value['amount'] + '% discount');
@@ -3414,6 +3423,16 @@ $('#customer_id').change(
     }
 );
 
+function changeGrandTotal(due){
+
+    $('#add-payment').modal('hide');
+    $('.payment-amount h2').html("Due Amount: <span id='grand-total'>"+due+"</span>");
+    // $("#grand-total").text(due);
+
+
+
+}
+
 function custForm()
 {
 var token = $('meta[name="csrf-token"]').attr('content');
@@ -3458,7 +3477,9 @@ $('.paying_amount').keyup(function(){
     if(parseFloat(paying) < parseFloat(paid))
     {
         $('.chnagelbl').html('Due :');
-        $('#submit-btn').prop("disabled",true);
+        $('#submit-btn').prop("type","button");
+        // $('#submit-btn').attr("onclick","changeGrandTotal("+(parseFloat(paid)-parseFloat(paying))+")");
+        $('#submit-btn').text("Save");
         $('.draft-btnc').css('display','block');
 		$('#change').text($('#change').text().replace('-',''));
 		$('.chnagelbl').css('color','#cf2029');
@@ -3466,6 +3487,7 @@ $('.paying_amount').keyup(function(){
     }
     else
     {
+        $('#submit-btn').prop("type","submit");
         $('.chnagelbl').html('Change : ');
         $('#submit-btn').prop("disabled",false);
         $('.draft-btnc').css('display','none');

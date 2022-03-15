@@ -1736,17 +1736,23 @@ class SaleController extends Controller
     public function edit($id)
     {
         $role = Role::find(Auth::user()->role_id);
-        if($role->hasPermissionTo('sales-edit')){
-            $lims_customer_list = Customer::where('is_active', true)->get();
-            $lims_warehouse_list = Warehouse::where('is_active', true)->get();
-            $lims_biller_list = Biller::where('is_active', true)->get();
-            $lims_tax_list = Tax::where('is_active', true)->get();
-            $lims_sale_data = Sale::find($id);
-            $lims_product_sale_data = Product_Sale::where('sale_id', $id)->get();
-            return view('sale.edit',compact('lims_customer_list', 'lims_warehouse_list', 'lims_biller_list', 'lims_tax_list', 'lims_sale_data','lims_product_sale_data'));
+
+        try {
+            if ($role->hasPermissionTo('sales-edit')) {
+                $lims_customer_list = Customer::where('is_active', true)->get();
+                $lims_warehouse_list = Warehouse::where('is_active', true)->get();
+                $lims_biller_list = Biller::where('is_active', true)->get();
+                $lims_tax_list = Tax::where('is_active', true)->get();
+                $lims_sale_data = Sale::find($id);
+                $lims_product_sale_data = Product_Sale::where('sale_id', $id)->get();
+                return view('sale.edit', compact('lims_customer_list', 'lims_warehouse_list', 'lims_biller_list', 'lims_tax_list', 'lims_sale_data', 'lims_product_sale_data'));
+                dd($id);
+            } else {
+                return redirect()->back()->with('not_permitted', 'Sorry! You are not allowed to access this module');
+            }
+        }catch(\Exception $e){
+            dd($e);
         }
-        else
-            return redirect()->back()->with('not_permitted', 'Sorry! You are not allowed to access this module');
     }
 
     public function update(Request $request, $id)
