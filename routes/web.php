@@ -130,6 +130,7 @@ Route::group(['middleware' => ['auth', 'active']], function() {
 	Route::get('sales/print-last-reciept', 'SaleController@printLastReciept')->name('sales.printLastReciept');
 	Route::get('sales/today-sale', 'SaleController@todaySale');
 	Route::get('sales/today-profit/{warehouse_id}', 'SaleController@todayProfit');
+    Route::post('sales/add-misc-item','SaleController@addMiscItem');
 	Route::resource('sales', 'SaleController');
 
 	Route::get('delivery', 'DeliveryController@index')->name('delivery.index');
@@ -240,6 +241,8 @@ Route::group(['middleware' => ['auth', 'active']], function() {
 	Route::get('setting/pos_setting', 'SettingController@posSetting')->name('setting.pos');
 	Route::post('setting/pos_setting_store', 'SettingController@posSettingStore')->name('setting.posStore');
 	Route::get('setting/empty-database', 'SettingController@emptyDatabase')->name('setting.emptyDatabase');
+	Route::get('setting/logo-setting', 'SettingController@logoSetting')->name('setting.logo');
+	Route::post('setting/store-logo-setting', 'SettingController@uploadLogo')->name('setting.uploadlogo');
 
 	Route::get('expense_categories/gencode', 'ExpenseCategoryController@generateCode');
 	Route::post('expense_categories/import', 'ExpenseCategoryController@import')->name('expense_category.import');

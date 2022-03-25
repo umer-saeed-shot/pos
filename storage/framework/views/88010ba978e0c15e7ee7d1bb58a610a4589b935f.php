@@ -103,7 +103,7 @@
     <div id="receipt-data">
         <div class="centered">
             <?php if($general_setting->site_logo): ?>
-                <img src="<?php echo e(url('public/logo', $general_setting->site_logo)); ?>" height="42" width="42" style="margin:10px 0;">
+                <img src="<?php echo e(url('public/img/logo/', $logo)); ?>" height="60" width="60" style="margin:10px 0;">
             <?php endif; ?>
 
             <h2><?php echo e($lims_biller_data->company_name); ?></h2>

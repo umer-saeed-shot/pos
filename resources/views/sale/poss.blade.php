@@ -765,6 +765,46 @@
                 <source src="{{url('public/beep/beep-07.mp3')}}">
                 </source>
             </audio>
+            <div id="add-misc-item" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true" class="modal fade text-left">
+                <div role="document" class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 id="exampleModalLabel" class="modal-title">Add Misc. Item</h5>
+                            <button type="button" data-dismiss="modal" aria-label="Close" class="close"><span aria-hidden="true"><i class="dripicons-cross"></i></span></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="row">
+                                <div class="col-md-3">
+                                    <input type="text" name="price" id="misc_price" class="form-control" step="0.01" placeholder="Price" >
+                                </div>
+                                x
+                                <div class="col-md-3">
+                                    <input type="number" name="qty" id="misc_qty" class="form-control" placeholder="Quantity" value="1" >
+                                </div>
+                                =
+                                <div class="col-md-3">
+                                    <input type="text" name="total_price" id="misc_total_price" class="form-control" step="0.01" placeholder="Extended Price">
+                                </div>
+                            </div>
+                            <br>
+                            <div class="row">
+                                <div class="col-md-3">
+                                    <input type="text" name="misc_discount" id="misc_discount" class="form-control" step="0.01" placeholder="Discount" >
+                                </div>
+
+                                <div class="col-md-3">
+                                    <input type="text" name="tax" id="misc_tax" class="form-control"  placeholder="Tax Rate in Percentage" >
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-2 offset-10">
+                                    <button class="btn btn-success" id="misc_add" onclick="addMiscItem()">Add</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
             <div class="col-md-12">
                 <div class="card">
                     <div class="card-body" style="padding-bottom: 0">
@@ -839,6 +879,9 @@
                                                 @endif
                                             </div>
                                         </div>
+                                    </div>
+                                    <div class="col-md-2">
+                                        <button type="button" class="btn btn-primary misc-item" data-toggle="modal" data-target="#add-misc-item" id="add-misc-btn"><i class="fa fa-plus"></i> Misc Item</button>
                                     </div>
                                     <div class="col-md-12">
                                         <div class="search-box form-group">
@@ -930,8 +973,10 @@
                         </div>
                     </div>
                     <div class="payment-amount">
-                        <h2>{{trans('file.grand total')}} <span id="grand-total">0.00</span></h2>
+                        <h2 id="pa">{{trans('file.grand total')}} <span id="grand-total">0.00</span></h2>
+                        <h2 id="da" style="display: none">Due :  <span id="due-total">0.00</span></h2>
                     </div>
+
                     <div class="payment-options">
                         <div class="column-5">
                             <button style="background: #cf2029" type="button" class="btn btn-custom payment-btn" data-toggle="modal" data-target="#add-payment" id="credit-card-btn"><i class="fa fa-credit-card"></i> Card</button>
@@ -964,6 +1009,13 @@
                     </div>
                 </div>
             </div>
+
+            {{-- misc item modal --}}
+
+
+
+
+
             <!-- payment modal -->
             <div id="add-payment" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true" class="modal fade text-left">
                 <div role="document" class="modal-dialog">
@@ -1037,7 +1089,8 @@
                                             <textarea rows="3" class="form-control" name="staff_note"></textarea>
                                         </div>
                                     </div>
-                                    <div class="mt-3 newsubmit">
+                                    <div class="mt-6 newsubmit row" style="margin-left: 5px">
+                                        <button id="pay_anyway" type="button" class="btn btn-primary" style="display: none">Save</button>
                                         <button id="submit-btn" type="button" class="btn btn-primary">{{trans('file.submit')}}</button>
                                         <button style="background-color: #4db2ec; display:none; float:left;" type="button" class="btn btn-primary draft-btnc" id=""><i class="dripicons-flag"></i> Hold</button>
                                     </div>
@@ -1150,6 +1203,7 @@
 										<input type="hidden" name="balance">
 										<div class="col-md-6">
 											<label>{{trans('file.Recieved Amount')}} *</label>
+
 											<input type="text" name="paying_amount" class="form-control numkey" step="any" required>
 										</div>
 										<div class="col-md-6">
@@ -1797,7 +1851,67 @@
         </div>
     </div>
 </section>
+<script>
 
+function addMiscItem(){
+    var price = $('#misc_price').val();
+    var qty = $("#misc_qty").val();
+    var discount = $("#misc_discount").val();
+    var tax = $("#misc_tax").val();
+    if(tax == ""){
+        tax = 0
+    }
+    if(discount == ""){
+        discount = 0;
+    }
+
+    var total_price = $("#misc_total_price").val();
+
+    $.ajax({
+        type: "POST",
+        url: "sales/add-misc-item",
+        data: {_token:"{{ csrf_token() }}",price:price,qty:qty,discount:discount,tax:tax,total_price:total_price},
+        success: function (response) {
+            if(Array.isArray(response) ){
+                $('#add-misc-item').modal('hide');
+                addNewProduct(response)
+            }else{
+                alert("Error 500 !");
+            }
+        }
+    });
+}
+
+function calculateMiscPrice(){
+    var value = $('#misc_price').val();
+    var qty = $("#misc_qty").val();
+    var total_price = $("#misc_total_price");
+    var total = parseFloat(value) * qty;
+    total_price.val(total);
+}
+
+$('#misc_price').on('input',function(e){
+
+    var value = $(this).val();
+    var qty = $("#misc_qty").val();
+    var total_price = $("#misc_total_price");
+    var total = parseFloat(value) * qty;
+    total_price.val(total);
+});
+
+$('#misc_qty').on('input',function(e){
+
+    var qty = $(this).val();
+    var price = $("#misc_price").val();
+    var total_price = $("#misc_total_price");
+    var total = parseFloat(price) * qty;
+    total_price.val(total);
+});
+
+
+
+
+</script>
 <script type="text/javascript">
     $("ul#sale").siblings('a').attr('aria-expanded', 'true');
     $("ul#sale").addClass("show");
@@ -2492,7 +2606,7 @@
 
         if(compare == 3)
         {
-            if(!$( 'input[name="cardnumber"]' ).hasClass( "Input--empty" ))
+            if(!$('.external-me').prop('checked'))
             {
                 if($('.card-errors').text() == "")
                 {
@@ -2506,28 +2620,19 @@
                     alert("the card number is invalid");
                 }
             }
-            else
-            {
+
                 if ($('.external-me').prop('checked')) {
-                    if($( 'input[name="cardnumber"]' ).val() != "")
-                    {
+
                         $('.payment-form').submit();
-                    }
-                    else
-                    {
-                        alert("Enter card number");
-                        $('.card-errors').text("Card Number is empty") ;
-                    }
+
                  }
-                }
+
          }
         else
         {
-            if(parseFloat(paying) < parseFloat(paid)){
-                changeGrandTotal(parseFloat(paid) - parseFloat(paying));
-            }else{
-                $('.payment-form').submit();
-            }
+
+            $('.payment-form').submit();
+
         }
 
     });
@@ -2884,7 +2989,8 @@
                     else if (value['type'] == 'fixed') {
                         if (parseFloat($('input[name="grand_total"]').val()) >= value['minimum_amount']) {
                             $('input[name="grand_total"]').val($('input[name="grand_total"]').val() - value['amount']);
-
+                            $('#pa').css('display','block');
+                            $('#da').css('display','none');
                             $('#grand-total').text(parseFloat($('input[name="grand_total"]').val()).toFixed(2));
                             if (!$('input[name="coupon_active"]').val())
                                 alert('Congratulation! You got ' + value['amount'] + ' ' + currency + ' discount');
@@ -2902,7 +3008,8 @@
                         var coupon_discount = grand_total * (value['amount'] / 100);
                         grand_total = grand_total - coupon_discount;
                         $('input[name="grand_total"]').val(grand_total);
-
+                        $('#pa').css('display','block');
+                            $('#da').css('display','none');
                         $('#grand-total').text(parseFloat(grand_total).toFixed(2));
                         if (!$('input[name="coupon_active"]').val())
                             alert('Congratulation! You got ' + value['amount'] + '% discount');
@@ -2972,6 +3079,7 @@
     }
 
     function calculateRowProductData(quantity) {
+
         var pric = $('#myTable').find('tr').eq(rowindex + 1).find('.dupprice').val();
         //alert(pric);
         if (product_type[pos] == 'standard') {
@@ -3025,6 +3133,7 @@
             $('table.order-list tbody tr:nth-child(' + (rowindex + 1) + ')').find('.subtotal-value').val(sub_total.toFixed(2));
         }
         //alert('hi');
+
         calculateTotal();
     }
 
@@ -3127,6 +3236,8 @@
         $('#tax').text(order_tax.toFixed(2));
         $('input[name="order_tax"]').val(order_tax.toFixed(2));
         $('#shipping-cost').text(shipping_cost.toFixed(2));
+        $('#pa').css('display','block');
+                            $('#da').css('display','none');
         $('#grand-total').text(grand_total.toFixed(2));
         $('input[name="grand_total"]').val(grand_total.toFixed(2));
     }
@@ -3300,6 +3411,8 @@ $('.paysubmit').click(function(){
         });
         $('.subtotal-value').eq(ind).val(price * qty);
         $('#subtotal').text(gt);
+        $('#pa').css('display','block');
+                            $('#da').css('display','none');
         $('#grand-total').text(gt);
         $('.totals').each(function() {
             $(this).find(".btn-sm").addClass('disabled').click(false);
@@ -3423,10 +3536,13 @@ $('#customer_id').change(
     }
 );
 
-function changeGrandTotal(due){
-
+function changeGrandTotal(due,paying){
+    // alert(due);
+    $('#pa').css('display','none');
+    $('#da').css('display','block');
     $('#add-payment').modal('hide');
-    $('.payment-amount h2').html("Due Amount: <span id='grand-total'>"+due+"</span>");
+    // $("#add-payment").append('<input type="hidden" name="paying_amount_array[]" value="'+paying+'"><input type="hidden" name="pay_by_id_array[]">');
+    $('#due-total').text(due);
     // $("#grand-total").text(due);
 
 
@@ -3478,8 +3594,9 @@ $('.paying_amount').keyup(function(){
     {
         $('.chnagelbl').html('Due :');
         $('#submit-btn').prop("type","button");
-        // $('#submit-btn').attr("onclick","changeGrandTotal("+(parseFloat(paid)-parseFloat(paying))+")");
-        $('#submit-btn').text("Save");
+        $('#pay_anyway').attr("onclick","changeGrandTotal("+(parseFloat(paid)-parseFloat(paying))+","+parseFloat(paying)+")");
+        $('#pay_anyway').css('display','block');
+        $('#submit-btn').text("Pay with dues");
         $('.draft-btnc').css('display','block');
 		$('#change').text($('#change').text().replace('-',''));
 		$('.chnagelbl').css('color','#cf2029');
@@ -3487,8 +3604,10 @@ $('.paying_amount').keyup(function(){
     }
     else
     {
-        $('#submit-btn').prop("type","submit");
+
+        $('#submit-btn').text("Submit");
         $('.chnagelbl').html('Change : ');
+        $('#pay_anyway').css('display','none');
         $('#submit-btn').prop("disabled",false);
         $('.draft-btnc').css('display','none');
 		$('.chnagelbl').css('color','#303030');

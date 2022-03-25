@@ -36,6 +36,7 @@ use App\ProductPurchase;
 use App\Purchase;
 use DB;
 use App\GeneralSetting;
+use App\LogoSetting;
 use Stripe\Stripe;
 use NumberToWords\NumberToWords;
 use Auth;
@@ -553,11 +554,14 @@ class SaleController extends Controller
 
         if($data['pos']){
             $data['reference_no'] = 'posr-' . date("Ymd") . '-'. date("his");
-            $balance = $data['grand_total'] - $data['paid_amount'];
-            if($balance > 0 || $balance < 0)
+            $balance = $data['grand_total'] - $data['paying_amount'];
+
+            if ($balance > 0 || $balance < 0) {
                 $data['payment_status'] = 2;
-            else
+                $data['paid_amount']=$data['paying_amount'];
+            }else{
                 $data['payment_status'] = 4;
+            }
             if($data['draft']) {
 			//DB::enableQueryLog();
                 $lims_sale_data = Sale::find($data['sale_id']);
@@ -770,7 +774,7 @@ class SaleController extends Controller
             $data['payment_reference'] = 'spr-'.date("Ymd").'-'.date("his");
             $lims_payment_data->payment_reference = $data['payment_reference'];
             $lims_payment_data->amount = $data['paid_amount'];
-            $lims_payment_data->change = $data['paying_amount'] - $data['paid_amount'];
+            $lims_payment_data->change = $data['paying_amount'] - $data['grand_total'];
             $lims_payment_data->paying_method = $paying_method;
             $lims_payment_data->payment_note = $data['payment_note'];
 			//dd($lims_payment_data);
@@ -1406,6 +1410,78 @@ class SaleController extends Controller
 
     }
 
+    public function addMiscItem(Request $request)
+    {
+
+        if($request->tax == 0){
+            $tax_rate = 0;
+            $total_tax = 0;
+            // $product_tax = 0;
+            $tax_name = "No Tax";
+        }else{
+            $tax_rate = $request->tax;
+            $total_tax = floatval($request->total_price)*(floatval($request->tax)/100);
+            // $product_tax =  floatval($request->price)*(floatval($request->tax)/100);
+            $tax_name = "Misc Tax";
+
+        }
+        try {
+            $data = array();
+            $data['user_id'] = Auth::id();
+            $data['warehouse_id'] = auth()->user()->warehouse_id;
+            $data['reference_no'] = 'special-order-' . date("Ymd") . '-'. date("his");
+            $data['item'] = 1;
+            $data['total_qty'] = $request->qty;
+            $data['total_discount'] = $request->discount;
+            $data['total_tax'] = $total_tax;
+            $data['total_cost'] = $request->total_price;
+            $data['order_tax_rate'] = $tax_rate;
+            $data['order_tax'] = $total_tax;
+            $data['grand_total'] = $request->total_price;
+            $data['paid_amount'] = $request->total_price;
+            $data['status'] = 1;
+            $data['payment_status'] = 2;
+            $data['note'] = "This is special order having misc item";
+
+            Purchase::create($data);
+            $purchase_id = Purchase::latest()->first();
+
+            $product_purchase = [];
+
+            $product_purchase['purchase_id'] =  $purchase_id->id;
+            $product_purchase['product_id'] = 1471;
+            $product_purchase['qty'] = $request->qty;
+            $product_purchase['recieved'] = $request->qty;
+            $product_purchase['purchase_unit_id'] = 1;
+            $product_purchase['net_unit_cost'] = $request->price;
+            $product_purchase['discount'] = $request->discount;
+            $product_purchase['tax_rate'] = $tax_rate;
+            $product_purchase['tax'] = $total_tax;
+            $product_purchase['total'] = $request->total_price;
+            ProductPurchase::create($product_purchase);
+
+            $pro = Product::where('id', 1471)->first();
+            $temp_product = [];
+            $temp_product[] = $pro["name"];
+            $temp_product[] = $pro["code"];
+            $temp_product[] = $request->price;
+            $temp_product[] = $tax_rate;
+            $temp_product[] = $tax_name;
+            $temp_product[] = $pro["tax_method"];
+            $temp_product[] = 'n/a'. ',';
+            $temp_product[] = 'n/a'. ',';
+            $temp_product[] = 'n/a'. ',';
+
+            $temp_product[] = 1471;
+            $temp_product[] = $request->qty;
+            $temp_product[] = $request->qty;
+            return $temp_product;
+        }catch(\Exception $ex){
+            return $ex;
+        }
+
+    }
+
     public function limsProductSearch(Request $request)
     {
         //$usid = Auth::id();
@@ -1777,10 +1853,11 @@ class SaleController extends Controller
             $data['document'] = $documentName;
         }
         $balance = $data['grand_total'] - $data['paid_amount'];
-        if($balance < 0 || $balance > 0)
+        if ($balance > 0 || $balance < 0) {
             $data['payment_status'] = 2;
-        else
+        }else{
             $data['payment_status'] = 4;
+        }
         $lims_sale_data = Sale::find($id);
         $lims_product_sale_data = Product_Sale::where('sale_id', $id)->get();
         $product_id = $data['product_id'];
@@ -2009,7 +2086,12 @@ class SaleController extends Controller
         $lims_customer_data = Customer::find($lims_sale_data->customer_id);
 
         $lims_payment_data = Payment::where('sale_id', $id)->get();
-
+        $logoInstance = LogoSetting::where('user_id',Auth::id())->first();
+        if($logoInstance == null){
+            $logo= "no-logo.png";
+        }else{
+            $logo = $logoInstance['image'];
+        }
         /*
         if($lims_payment_data->isEmpty())
         {
@@ -2025,7 +2107,7 @@ class SaleController extends Controller
 
         $numberInWords = $numberTransformer->toWords($lims_sale_data->grand_total);
 //echo 'hi'; exit;
-        return view('sale.invoice', compact('lims_sale_data', 'lims_product_sale_data', 'lims_biller_data', 'lims_warehouse_data', 'lims_customer_data', 'lims_payment_data', 'numberInWords'));
+        return view('sale.invoice', compact('lims_sale_data', 'lims_product_sale_data', 'lims_biller_data','logo', 'lims_warehouse_data', 'lims_customer_data', 'lims_payment_data', 'numberInWords'));
     }
 
     public function addPayment(Request $request)

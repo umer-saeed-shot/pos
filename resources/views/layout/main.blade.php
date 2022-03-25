@@ -806,6 +806,11 @@
                           ['permission_id', $hrm_setting_permission->id],
                           ['role_id', $role->id]
                       ])->first();
+                      $logo_setting_permission = DB::table('permissions')->where('name', 'upload_logo')->first();
+                      $logo_setting_permission_active = DB::table('role_has_permissions')->where([
+                          ['permission_id', $logo_setting_permission->id],
+                          ['role_id', $role->id]
+                      ])->first();
                   ?>
                   @if($role->id <= 2)
                   <li id="role-menu"><a href="{{route('role.index')}}">{{trans('file.Role Permission')}}</a></li>
@@ -852,8 +857,8 @@
                   @if($pos_setting_permission_active)
                   <li id="pos-setting-menu"><a href="{{route('setting.pos')}}">POS {{trans('file.settings')}}</a></li>
                   @endif
-                  @if($hrm_setting_permission_active)
-                  <li id="hrm-setting-menu"><a href="{{route('setting.hrm')}}"> {{trans('file.HRM Setting')}}</a></li>
+                  @if($logo_setting_permission_active)
+                  <li id="logo-setting-menu"><a href="{{route('setting.logo')}}"> Logo Setting</a></li>
                   @endif
                 </ul>
               </li>

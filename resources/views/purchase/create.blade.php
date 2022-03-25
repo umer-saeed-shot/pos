@@ -1,6 +1,6 @@
 @extends('layout.main') @section('content')
 @if(session()->has('not_permitted'))
-  <div class="alert alert-danger alert-dismissible text-center"><button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>{{ session()->get('not_permitted') }}</div> 
+  <div class="alert alert-danger alert-dismissible text-center"><button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>{{ session()->get('not_permitted') }}</div>
 @endif
 <section class="forms">
     <div class="container-fluid">
@@ -37,7 +37,7 @@
                                         </div>
                                     </div>
                                 </div>
-                                <div class="row">  
+                                <div class="row">
                                     <div class="col-md-6">
                                         <div class="form-group">
                                             <label>{{trans('file.Purchase Status')}}</label>
@@ -331,7 +331,7 @@ var lims_product_code = [
     @endforeach
         <?php
         echo  '"'.implode('","', $productArray).'"';
-        ?> 
+        ?>
 ];
 
     var lims_productcodeSearch = $('#lims_productcodeSearch');
@@ -359,7 +359,7 @@ var lims_product_code = [
 //Change quantity
 $("#myTable").on('input', '.qty', function() {
     rowindex = $(this).closest('tr').index();
-    
+
     if($(this).val() < 1 && $(this).val() != '') {
       $('table.order-list tbody tr:nth-child(' + (rowindex + 1) + ') .qty').val(1);
       alert("Quantity can't be less than 1");
@@ -371,7 +371,7 @@ $("#myTable").on('input', '.qty', function() {
 //Change Cost Price
 $("#myTable").on('input', '.net_unit_cost', function() {
     rowindex = $(this).closest('tr').index();
-    
+
     product_cost[rowindex] = $(this).val();
     qty = $('table.order-list tbody tr:nth-child(' + (rowindex + 1) + ') .qty').val();
     calculateRowProductData(qty);
@@ -511,7 +511,7 @@ function productSearch(data) {
                     cols += '<td class="recieved-product-qty"><input type="number" class="form-control recieved" name="recieved[]" value="1" step="any"/></td>';
                 else
                     cols += '<td class="recieved-product-qty d-none"><input type="number" class="form-control recieved" name="recieved[]" value="0" step="any"/></td>';
-                cols += '<td class=""><input type="number" class="form-control net_unit_cost" name="net_cost[]" value="'+data[2]+'" step="any" required/></td>';
+                cols += '<td class=""><input type="number" class="form-control net_unit_cost" name="net_cost[]" value="'+data[2]+'" step="0.01" required/></td>';
                 cols += '<td class="discount">0.00</td>';
                 cols += '<td class="tax"></td>';
                 cols += '<td class="sub-total"></td>';
@@ -539,7 +539,7 @@ function productSearch(data) {
                 rowindex = newRow.index();
                 calculateRowProductData(1);
             }
-            
+
         }
     });
 }
@@ -574,7 +574,7 @@ function calculateRowProductData(quantity) {
         var sub_total = (net_unit_cost * quantity) + tax;
 
         $('table.order-list tbody tr:nth-child(' + (rowindex + 1) + ')').find('td:nth-child(5) .net_unit_cost').val(net_unit_cost.toFixed(2));
-        $('table.order-list tbody tr:nth-child(' + (rowindex + 1) + ')').find('.net_unit_cost').val(net_unit_cost.toFixed(2));
+        $('table.order-list tbody tr:nth-child(' + (rowindex + 1) + ')').find('.net_unit_cost').val(net_unit_cost);
         $('table.order-list tbody tr:nth-child(' + (rowindex + 1) + ')').find('td:nth-child(7)').text(tax.toFixed(2));
         $('table.order-list tbody tr:nth-child(' + (rowindex + 1) + ')').find('.tax-value').val(tax.toFixed(2));
         $('table.order-list tbody tr:nth-child(' + (rowindex + 1) + ')').find('td:nth-child(8)').text(sub_total.toFixed(2));
@@ -584,9 +584,9 @@ function calculateRowProductData(quantity) {
         var net_unit_cost = (100 / (100 + tax_rate[rowindex])) * sub_total_unit;
         var tax = (sub_total_unit - net_unit_cost) * quantity;
         var sub_total = sub_total_unit * quantity;
-    
+
         $('table.order-list tbody tr:nth-child(' + (rowindex + 1) + ')').find('td:nth-child(5) .net_unit_cost').val(net_unit_cost.toFixed(2));
-        $('table.order-list tbody tr:nth-child(' + (rowindex + 1) + ')').find('.net_unit_cost').val(net_unit_cost.toFixed(2));
+        $('table.order-list tbody tr:nth-child(' + (rowindex + 1) + ')').find('.net_unit_cost').val(net_unit_cost);
         $('table.order-list tbody tr:nth-child(' + (rowindex + 1) + ')').find('td:nth-child(7)').text(tax.toFixed(2));
         $('table.order-list tbody tr:nth-child(' + (rowindex + 1) + ')').find('.tax-value').val(tax.toFixed(2));
         $('table.order-list tbody tr:nth-child(' + (rowindex + 1) + ')').find('td:nth-child(8)').text(sub_total.toFixed(2));

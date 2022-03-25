@@ -19,7 +19,7 @@ class CustomerController extends Controller
 {
     public function index()
     {
-	
+
         $role = Role::find(Auth::user()->role_id);
         if($role->hasPermissionTo('customers-index')){
             $permissions = Role::findByName($role->name)->permissions;
@@ -52,7 +52,7 @@ class CustomerController extends Controller
 
     public function store(Request $request)
     {
-        
+
         $this->validate($request, [
             'phone_number' => [
                 'max:255',
@@ -81,12 +81,13 @@ class CustomerController extends Controller
                     }),
                 ],
             ]);
-	
+
             $lims_customer_data['phone'] = $lims_customer_data['phone_number'];
             $lims_customer_data['role_id'] = 5;
             $lims_customer_data['is_deleted'] = false;
             $lims_customer_data['password'] = bcrypt($lims_customer_data['password']);
             $user = User::create($lims_customer_data);
+
             $lims_customer_data['user_id'] = $user->id;
             $message = 'Customer and user created successfully';
             return redirect('customer')->with('create_message', $message);
@@ -96,7 +97,7 @@ class CustomerController extends Controller
             //$lims_customer_data->save($lims_customer_data);
         }
         $lims_customer_data['name'] = $lims_customer_data['customer_name'];
-        
+
         if($lims_customer_data['email'] && $lims_customer_data['email'] != '') {
             try{
                 Mail::send( 'mail.customer_create', $lims_customer_data, function( $message ) use ($lims_customer_data)
@@ -106,7 +107,7 @@ class CustomerController extends Controller
             }
             catch(\Exception $e){
                 $message = 'Customer created successfully. Please setup your <a href="setting/mail_setting">mail setting</a> to send mail.';
-            }   
+            }
         }
         Customer::create($lims_customer_data);
         if($lims_customer_data['pos'])
@@ -119,7 +120,7 @@ class CustomerController extends Controller
     {
         $role = Role::find(Auth::user()->role_id);
         if($role->hasPermissionTo('customers-edit')){
-            
+
             $lims_customer_data = Customer::find($id);
             $lims_customer_group_all = CustomerGroup::where('is_active',true)->get();
             return view('customer.edit', compact('lims_customer_data','lims_customer_group_all'));
@@ -212,7 +213,7 @@ class CustomerController extends Controller
 		else
 		return redirect('customer')->with('edit_message', $message);
     }
-	
+
 
     public function importCustomer(Request $request)
     {
