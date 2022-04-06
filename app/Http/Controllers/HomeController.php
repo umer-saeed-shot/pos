@@ -12,6 +12,7 @@ use App\Payroll;
 use App\Quotation;
 use App\Payment;
 use App\Account;
+use App\Category;
 use App\Product_Sale;
 use App\Customer;
 use DB;
@@ -40,6 +41,7 @@ class HomeController extends Controller
         $start_date = date("Y").'-'.date("m").'-'.'01';
         $end_date = date("Y").'-'.date("m").'-'.date('t', mktime(0, 0, 0, date("m"), 1, date("Y")));
         $yearly_sale_amount = [];
+        $categories= Category::where('is_active',1)->get();
 
         $general_setting = DB::table('general_settings')->latest()->first();
         if(Auth::user()->role_id > 2 && $general_setting->staff_access == 'own') {
@@ -101,7 +103,7 @@ class HomeController extends Controller
                 $payroll_amount = Payroll::whereDate('created_at', '>=' , $start_date)->whereDate('created_at', '<=' , $end_date)->sum('amount');
             }
             $sent_amount = $sent_amount + $return_amount + $expense_amount + $payroll_amount;
-            
+
             $payment_recieved[] = number_format((float)($recieved_amount + $purchase_return_amount), 2, '.', '');
             $payment_sent[] = number_format((float)$sent_amount, 2, '.', '');
             $month[] = date("F", strtotime($start_date));
@@ -127,7 +129,132 @@ class HomeController extends Controller
             $start = strtotime("+1 month", $start);
         }
         //return $month;
-        return view('index', compact('revenue', 'purchase', 'expense', 'return', 'purchase_return', 'profit', 'payment_recieved', 'payment_sent', 'month', 'yearly_sale_amount', 'yearly_purchase_amount', 'recent_sale', 'recent_purchase', 'recent_quotation', 'recent_payment', 'best_selling_qty', 'yearly_best_selling_qty', 'yearly_best_selling_price'));
+        return view('index', compact('revenue', 'purchase','categories', 'expense', 'return', 'purchase_return', 'profit', 'payment_recieved', 'payment_sent', 'month', 'yearly_sale_amount', 'yearly_purchase_amount', 'recent_sale', 'recent_purchase', 'recent_quotation', 'recent_payment', 'best_selling_qty', 'yearly_best_selling_qty', 'yearly_best_selling_price'));
+    }
+
+    public function cashFlowFilter($cat_id,$type)
+    {
+        //cash flow of last 6 months
+        $start = strtotime(date('Y-m-01', strtotime('-6 month', strtotime(date('Y-m-d') ))));
+        $end = strtotime(date('Y-m-'.date('t', mktime(0, 0, 0, date("m"), 1, date("Y")))));
+
+        while($start < $end)
+        {
+            $start_date = date("Y-m", $start).'-'.'01';
+            $end_date = date("Y-m", $start).'-'.'31';
+
+            if(Auth::user()->role_id > 2 && $general_setting->staff_access == 'own') {
+
+                if ($cat_id !== 0 && $type == 0) {
+                    $recieved_amount = Payment::whereNotNull('payments.sale_id')->join('sales', 'sales.id', 'payments.sale_id')->join('product_sales', 'product_sales.sale_id', 'sales.id')->join('products', 'products.id', 'product_sales.product_id')->where('products.category_id', $cat_id)->whereDate('payments.created_at', '>=', $start_date)->whereDate('payments.created_at', '<=', $end_date)->where('payments.user_id', Auth::id())->sum('payments.amount');
+                    $sent_amount = Payment::whereNotNull('payments.purchase_id')->join('purchases', 'purchases.id', 'payments.purchase_id')->join('product_purchases', 'product_purchases.purchase_id', 'purchases.id')->join('products', 'products.id', 'product_purchases.product_id')->where('products.category_id', $cat_id)->whereDate('payments.created_at', '>=', $start_date)->whereDate('payments.created_at', '<=', $end_date)->where('payments.user_id', Auth::id())->sum('payments.amount');
+                    $return_amount = Returns::join('product_returns', 'returns.id', 'product_returns.return_id')->join('products', 'product_returns.product_id', 'products.id')->where('products.category_id', $cat_id)->whereDate('returns.created_at', '>=', $start_date)->whereDate('returns.created_at', '<=', $end_date)->where('returns.user_id', Auth::id())->sum('returns.grand_total');
+                    $purchase_return_amount = ReturnPurchase::join('purchase_product_return', 'return_purchases.id', 'purchase_product_return.return_id')->join('products', 'purchase_product_return.product_id', 'products.id')->where('products.category_id', $cat_id)->whereDate('return_purchases.created_at', '>=', $start_date)->whereDate('return_purchases.created_at', '<=', $end_date)->where('return_purchases.user_id', Auth::id())->sum('return_purchases.grand_total');
+                    $expense_amount = Expense::whereDate('created_at', '>=', $start_date)->whereDate('created_at', '<=', $end_date)->where('user_id', Auth::id())->sum('amount');
+                    $payroll_amount = Payroll::whereDate('created_at', '>=', $start_date)->whereDate('created_at', '<=', $end_date)->where('user_id', Auth::id())->sum('amount');
+                }elseif ($cat_id == 0 && $type !== 0) {
+                    $recieved_amount = Payment::whereNotNull('payments.sale_id')->join('sales', 'sales.id', 'payments.sale_id')->join('product_sales', 'product_sales.sale_id', 'sales.id')->join('products', 'products.id', 'product_sales.product_id')->where('products.type', $type)->whereDate('payments.created_at', '>=', $start_date)->whereDate('payments.created_at', '<=', $end_date)->where('payments.user_id', Auth::id())->sum('payments.amount');
+                    $sent_amount = Payment::whereNotNull('payments.purchase_id')->join('purchases', 'purchases.id', 'payments.purchase_id')->join('product_purchases', 'product_purchases.purchase_id', 'purchases.id')->join('products', 'products.id', 'product_purchases.product_id')->where('products.type', $type)->whereDate('payments.created_at', '>=', $start_date)->whereDate('payments.created_at', '<=', $end_date)->where('payments.user_id', Auth::id())->sum('payments.amount');
+                    $return_amount = Returns::join('product_returns', 'returns.id', 'product_returns.return_id')->join('products', 'product_returns.product_id', 'products.id')->where('products.type', $type)->whereDate('returns.created_at', '>=', $start_date)->whereDate('returns.created_at', '<=', $end_date)->where('returns.user_id', Auth::id())->sum('returns.grand_total');
+                    $purchase_return_amount = ReturnPurchase::join('purchase_product_return', 'return_purchases.id', 'purchase_product_return.return_id')->join('products', 'purchase_product_return.product_id', 'products.id')->where('products.category_id', $cat_id)->whereDate('return_purchases.created_at', '>=', $start_date)->whereDate('return_purchases.created_at', '<=', $end_date)->where('return_purchases.user_id', Auth::id())->sum('return_purchases.grand_total');
+                    $expense_amount = Expense::whereDate('created_at', '>=', $start_date)->whereDate('created_at', '<=', $end_date)->where('user_id', Auth::id())->sum('amount');
+                    $payroll_amount = Payroll::whereDate('created_at', '>=', $start_date)->whereDate('created_at', '<=', $end_date)->where('user_id', Auth::id())->sum('amount');
+                } elseif ($cat_id !== 0 && $type !== 0) {
+                    $recieved_amount = Payment::whereNotNull('payments.sale_id')->join('sales', 'sales.id', 'payments.sale_id')->join('product_sales', 'product_sales.sale_id', 'sales.id')->join('products', 'products.id', 'product_sales.product_id')->where('products.category_id', $cat_id)->where('products.type', $type)->whereDate('payments.created_at', '>=', $start_date)->whereDate('payments.created_at', '<=', $end_date)->where('payments.user_id', Auth::id())->sum('payments.amount');
+                    $sent_amount = Payment::whereNotNull('payments.purchase_id')->join('purchases', 'purchases.id', 'payments.purchase_id')->join('product_purchases', 'product_purchases.purchase_id', 'purchases.id')->join('products', 'products.id', 'product_purchases.product_id')->where('products.category_id', $cat_id)->where('products.type', $type)->whereDate('payments.created_at', '>=', $start_date)->whereDate('payments.created_at', '<=', $end_date)->where('payments.user_id', Auth::id())->sum('payments.amount');
+                    $return_amount = Returns::join('product_returns', 'returns.id', 'product_returns.return_id')->join('products', 'product_returns.product_id', 'products.id')->where('products.category_id', $cat_id)->where('products.type', $type)->whereDate('returns.created_at', '>=', $start_date)->whereDate('returns.created_at', '<=', $end_date)->where('returns.user_id', Auth::id())->sum('returns.grand_total');
+                    $purchase_return_amount = ReturnPurchase::join('purchase_product_return', 'return_purchases.id', 'purchase_product_return.return_id')->join('products', 'purchase_product_return.product_id', 'products.id')->where('products.category_id', $cat_id)->whereDate('return_purchases.created_at', '>=', $start_date)->whereDate('return_purchases.created_at', '<=', $end_date)->where('return_purchases.user_id', Auth::id())->sum('return_purchases.grand_total');
+                    $expense_amount = Expense::whereDate('created_at', '>=', $start_date)->whereDate('created_at', '<=', $end_date)->where('user_id', Auth::id())->sum('amount');
+                    $payroll_amount = Payroll::whereDate('created_at', '>=', $start_date)->whereDate('created_at', '<=', $end_date)->where('user_id', Auth::id())->sum('amount');
+                }
+            }
+            else {
+                if ($cat_id !== 0 && $type == 0) {
+                    $recieved_amount = Payment::whereNotNull('payments.sale_id')->join('sales', 'sales.id', 'payments.sale_id')->join('product_sales', 'product_sales.sale_id', 'sales.id')->join('products', 'products.id', 'product_sales.product_id')->where('products.category_id', $cat_id)->whereDate('payments.created_at', '>=', $start_date)->whereDate('payments.created_at', '<=', $end_date)->sum('payments.amount');
+                    $sent_amount = Payment::whereNotNull('payments.purchase_id')->join('purchases', 'purchases.id', 'payments.purchase_id')->join('product_purchases', 'product_purchases.purchase_id', 'purchases.id')->join('products', 'products.id', 'product_purchases.product_id')->where('products.category_id', $cat_id)->whereDate('payments.created_at', '>=', $start_date)->whereDate('payments.created_at', '<=', $end_date)->sum('payments.amount');
+                    $return_amount = Returns::join('product_returns', 'returns.id', 'product_returns.return_id')->join('products', 'product_returns.product_id', 'products.id')->where('products.category_id', $cat_id)->whereDate('returns.created_at', '>=', $start_date)->whereDate('returns.created_at', '<=', $end_date)->sum('returns.grand_total');
+                    $purchase_return_amount = ReturnPurchase::join('purchase_product_return', 'return_purchases.id', 'purchase_product_return.return_id')->join('products', 'purchase_product_return.product_id', 'products.id')->where('products.category_id', $cat_id)->whereDate('return_purchases.created_at', '>=', $start_date)->whereDate('return_purchases.created_at', '<=', $end_date)->sum('return_purchases.grand_total');
+                    $expense_amount = Expense::whereDate('created_at', '>=', $start_date)->whereDate('created_at', '<=', $end_date)->where('user_id', Auth::id())->sum('amount');
+                    $payroll_amount = Payroll::whereDate('created_at', '>=', $start_date)->whereDate('created_at', '<=', $end_date)->where('user_id', Auth::id())->sum('amount');
+                }elseif ($cat_id == 0 && $type !== 0) {
+                    $recieved_amount = Payment::whereNotNull('payments.sale_id')->join('sales', 'sales.id', 'payments.sale_id')->join('product_sales', 'product_sales.sale_id', 'sales.id')->join('products', 'products.id', 'product_sales.product_id')->where('products.type', $type)->whereDate('payments.created_at', '>=', $start_date)->whereDate('payments.created_at', '<=', $end_date)->sum('payments.amount');
+                    $sent_amount = Payment::whereNotNull('payments.purchase_id')->join('purchases', 'purchases.id', 'payments.purchase_id')->join('product_purchases', 'product_purchases.purchase_id', 'purchases.id')->join('products', 'products.id', 'product_purchases.product_id')->where('products.type', $type)->whereDate('payments.created_at', '>=', $start_date)->whereDate('payments.created_at', '<=', $end_date)->sum('payments.amount');
+                    $return_amount = Returns::join('product_returns', 'returns.id', 'product_returns.return_id')->join('products', 'product_returns.product_id', 'products.id')->where('products.type', $type)->whereDate('returns.created_at', '>=', $start_date)->whereDate('returns.created_at', '<=', $end_date)->sum('returns.grand_total');
+                    $purchase_return_amount = ReturnPurchase::join('purchase_product_return', 'return_purchases.id', 'purchase_product_return.return_id')->join('products', 'purchase_product_return.product_id', 'products.id')->where('products.category_id', $cat_id)->whereDate('return_purchases.created_at', '>=', $start_date)->whereDate('return_purchases.created_at', '<=', $end_date)->sum('return_purchases.grand_total');
+                    $expense_amount = Expense::whereDate('created_at', '>=', $start_date)->whereDate('created_at', '<=', $end_date)->where('user_id', Auth::id())->sum('amount');
+                    $payroll_amount = Payroll::whereDate('created_at', '>=', $start_date)->whereDate('created_at', '<=', $end_date)->where('user_id', Auth::id())->sum('amount');
+                } elseif ($cat_id !== 0 && $type !== 0) {
+                    $recieved_amount = Payment::whereNotNull('payments.sale_id')->join('sales', 'sales.id', 'payments.sale_id')->join('product_sales', 'product_sales.sale_id', 'sales.id')->join('products', 'products.id', 'product_sales.product_id')->where('products.category_id', $cat_id)->where('products.type', $type)->whereDate('payments.created_at', '>=', $start_date)->whereDate('payments.created_at', '<=', $end_date)->sum('payments.amount');
+                    $sent_amount = Payment::whereNotNull('payments.purchase_id')->join('purchases', 'purchases.id', 'payments.purchase_id')->join('product_purchases', 'product_purchases.purchase_id', 'purchases.id')->join('products', 'products.id', 'product_purchases.product_id')->where('products.category_id', $cat_id)->where('products.type', $type)->whereDate('payments.created_at', '>=', $start_date)->whereDate('payments.created_at', '<=', $end_date)->sum('payments.amount');
+                    $return_amount = Returns::join('product_returns', 'returns.id', 'product_returns.return_id')->join('products', 'product_returns.product_id', 'products.id')->where('products.category_id', $cat_id)->where('products.type', $type)->whereDate('returns.created_at', '>=', $start_date)->whereDate('returns.created_at', '<=', $end_date)->sum('returns.grand_total');
+                    $purchase_return_amount = ReturnPurchase::join('purchase_product_return', 'return_purchases.id', 'purchase_product_return.return_id')->join('products', 'purchase_product_return.product_id', 'products.id')->where('products.category_id', $cat_id)->whereDate('return_purchases.created_at', '>=', $start_date)->whereDate('return_purchases.created_at', '<=', $end_date)->sum('return_purchases.grand_total');
+                    $expense_amount = Expense::whereDate('created_at', '>=', $start_date)->whereDate('created_at', '<=', $end_date)->where('user_id', Auth::id())->sum('amount');
+                    $payroll_amount = Payroll::whereDate('created_at', '>=', $start_date)->whereDate('created_at', '<=', $end_date)->where('user_id', Auth::id())->sum('amount');
+                }
+            }
+            $sent_amount = $sent_amount + $return_amount + $expense_amount + $payroll_amount;
+
+            $payment_recieved[] = number_format((float)($recieved_amount + $purchase_return_amount), 2, '.', '');
+            $payment_sent[] = number_format((float)$sent_amount, 2, '.', '');
+            $month[] = date("F", strtotime($start_date));
+            $start = strtotime("+1 month", $start);
+        }
+        return [$month,$payment_recieved,$payment_sent];
+    }
+
+    public function pieChartFilter($cat_id,$type)
+    {
+        $start_date = date("Y").'-'.date("m").'-'.'01';
+        $end_date = date("Y").'-'.date("m").'-'.date('t', mktime(0, 0, 0, date("m"), 1, date("Y")));
+
+
+        $general_setting = DB::table('general_settings')->latest()->first();
+        try {
+            if (Auth::user()->role_id > 2 && $general_setting->staff_access == 'own') {
+                if ($cat_id !== 0 && $type == 0) {
+                    $revenue = Sale::join('product_sales', 'sales.id', 'product_sales.sale_id')->join('products', 'product_sales.product_id', 'products.id')->where('products.category_id', $cat_id)->whereDate('sales.created_at', '>=', $start_date)->where('sales.user_id', Auth::id())->whereDate('sales.created_at', '<=', $end_date)->sum('sales.grand_total');
+                    $return = Returns::join('product_returns', 'returns.id', 'product_returns.return_id')->join('products', 'product_returns.product_id', 'products.id')->where('products.category_id', $cat_id)->whereDate('returns.created_at', '>=', $start_date)->where('returns.user_id', Auth::id())->whereDate('returns.created_at', '<=', $end_date)->sum('returns.grand_total');
+                    $revenue = $revenue - $return;
+                    $purchase = Purchase::join('product_purchases', 'purchases.id', 'product_purchases.purchase_id')->join('products', 'product_purchases.product_id', 'products.id')->where('products.category_id', $cat_id)->whereDate('purchases.created_at', '>=', $start_date)->where('purchases.user_id', Auth::id())->whereDate('purchases.created_at', '<=', $end_date)->sum('purchases.grand_total');
+                    $expense = Expense::whereDate('created_at', '>=', $start_date)->where('user_id', Auth::id())->whereDate('created_at', '<=', $end_date)->sum('amount');
+                } elseif ($cat_id == 0 && $type !== 0) {
+                    $revenue = Sale::join('product_sales', 'sales.id', 'product_sales.sale_id')->join('products', 'product_sales.product_id', 'products.id')->where('products.type', $type)->whereDate('sales.created_at', '>=', $start_date)->where('sales.user_id', Auth::id())->whereDate('sales.created_at', '<=', $end_date)->sum('sales.grand_total');
+                    $return = Returns::join('product_returns', 'returns.id', 'product_returns.return_id')->join('products', 'product_returns.product_id', 'products.id')->where('products.type', $type)->whereDate('returns.created_at', '>=', $start_date)->where('returns.user_id', Auth::id())->whereDate('returns.created_at', '<=', $end_date)->sum('returns.grand_total');
+                    $revenue = $revenue - $return;
+                    $purchase = Purchase::join('product_purchases', 'purchases.id', 'product_purchases.purchase_id')->join('products', 'product_purchases.product_id', 'products.id')->where('products.type', $type)->whereDate('purchases.created_at', '>=', $start_date)->where('purchases.user_id', Auth::id())->whereDate('purchases.created_at', '<=', $end_date)->sum('purchases.grand_total');
+                    $expense = Expense::whereDate('created_at', '>=', $start_date)->where('user_id', Auth::id())->whereDate('created_at', '<=', $end_date)->sum('amount');
+                } elseif ($cat_id !== 0 && $type !== 0) {
+                    $revenue = Sale::join('product_sales', 'sales.id', 'product_sales.sale_id')->join('products', 'product_sales.product_id', 'products.id')->where('products.category_id', $cat_id)->where('products.type', $type)->whereDate('sales.created_at', '>=', $start_date)->where('sales.user_id', Auth::id())->whereDate('sales.created_at', '<=', $end_date)->sum('sales.grand_total');
+                    $return = Returns::join('product_returns', 'returns.id', 'product_returns.return_id')->join('products', 'product_returns.product_id', 'products.id')->where('products.category_id', $cat_id)->where('products.type', $type)->whereDate('returns.created_at', '>=', $start_date)->where('returns.user_id', Auth::id())->whereDate('returns.created_at', '<=', $end_date)->sum('returns.grand_total');
+                    $revenue = $revenue - $return;
+                    $purchase = Purchase::join('product_purchases', 'purchases.id', 'product_purchases.purchase_id')->join('products', 'product_purchases.product_id', 'products.id')->where('products.category_id', $cat_id)->where('products.type', $type)->whereDate('purchases.created_at', '>=', $start_date)->where('purchases.user_id', Auth::id())->whereDate('purchases.created_at', '<=', $end_date)->sum('purchases.grand_total');
+                    $expense = Expense::whereDate('created_at', '>=', $start_date)->where('user_id', Auth::id())->whereDate('created_at', '<=', $end_date)->sum('amount');
+                }
+            } else {
+                if ($cat_id !== 0 && $type == 0) {
+                    $revenue = Sale::join('product_sales', 'sales.id', 'product_sales.sale_id')->join('products', 'product_sales.product_id', 'products.id')->where('products.category_id', $cat_id)->whereDate('sales.created_at', '>=', $start_date)->whereDate('sales.created_at', '<=', $end_date)->sum('sales.grand_total');
+                    $return = Returns::join('product_returns', 'returns.id', 'product_returns.return_id')->join('products', 'product_returns.product_id', 'products.id')->where('products.category_id', $cat_id)->whereDate('returns.created_at', '>=', $start_date)->whereDate('returns.created_at', '<=', $end_date)->sum('returns.grand_total');
+                    $revenue = $revenue - $return;
+                    $purchase = Purchase::join('product_purchases', 'purchases.id', 'product_purchases.purchase_id')->join('products', 'product_purchases.product_id', 'products.id')->where('products.category_id', $cat_id)->whereDate('purchases.created_at', '>=', $start_date)->whereDate('purchases.created_at', '<=', $end_date)->sum('purchases.grand_total');
+                    $expense = Expense::whereDate('created_at', '>=', $start_date)->whereDate('created_at', '<=', $end_date)->sum('amount');
+                } elseif ($cat_id == 0 && $type !== 0) {
+                    $revenue = Sale::join('product_sales', 'sales.id', 'product_sales.sale_id')->join('products', 'product_sales.product_id', 'products.id')->where('products.type', $type)->whereDate('sales.created_at', '>=', $start_date)->whereDate('sales.created_at', '<=', $end_date)->sum('sales.grand_total');
+                    $return = Returns::join('product_returns', 'returns.id', 'product_returns.return_id')->join('products', 'product_returns.product_id', 'products.id')->where('products.type', $type)->whereDate('returns.created_at', '>=', $start_date)->whereDate('returns.created_at', '<=', $end_date)->sum('returns.grand_total');
+                    $revenue = $revenue - $return;
+                    $purchase = Purchase::join('product_purchases', 'purchases.id', 'product_purchases.purchase_id')->join('products', 'product_purchases.product_id', 'products.id')->where('products.type', $type)->whereDate('purchases.created_at', '>=', $start_date)->whereDate('purchases.created_at', '<=', $end_date)->sum('purchases.grand_total');
+                    $expense = Expense::whereDate('created_at', '>=', $start_date)->whereDate('created_at', '<=', $end_date)->sum('amount');
+                } elseif ($cat_id !== 0 && $type !== 0) {
+                    $revenue = Sale::join('product_sales', 'sales.id', 'product_sales.sale_id')->join('products', 'product_sales.product_id', 'products.id')->where('products.category_id', $cat_id)->where('products.type', $type)->whereDate('sales.created_at', '>=', $start_date)->whereDate('sales.created_at', '<=', $end_date)->sum('sales.grand_total');
+                    $return = Returns::join('product_returns', 'returns.id', 'product_returns.return_id')->join('products', 'product_returns.product_id', 'products.id')->where('products.category_id', $cat_id)->where('products.type', $type)->whereDate('returns.created_at', '>=', $start_date)->whereDate('returns.created_at', '<=', $end_date)->sum('returns.grand_total');
+                    $revenue = $revenue - $return;
+                    $purchase = Purchase::join('product_purchases', 'purchases.id', 'product_purchases.purchase_id')->join('products', 'product_purchases.product_id', 'products.id')->where('products.category_id', $cat_id)->where('products.type', $type)->whereDate('purchases.created_at', '>=', $start_date)->whereDate('purchases.created_at', '<=', $end_date)->sum('purchases.grand_total');
+                    $expense = Expense::whereDate('created_at', '>=', $start_date)->whereDate('created_at', '<=', $end_date)->sum('amount');
+                }
+            }
+            return [$revenue,$purchase,$expense];
+        }catch(\Exception $e){
+            return $e->getMessage();
+        }
     }
 
     public function dashboardFilter($start_date, $end_date)
@@ -159,7 +286,7 @@ class HomeController extends Controller
             $data[2] = $profit;
             $data[3] = $purchase_return;
         }
-        
+
         return $data;
     }
 

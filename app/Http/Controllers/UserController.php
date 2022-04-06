@@ -48,7 +48,7 @@ class UserController extends Controller
             //exit;
             //$lims_user_list = User::with('warehouses')->where('is_deleted', false)->where('users.warehouse_id', 'warehouses.id')->get();
             //$users = User::leftJoin('warehouses', 'users.warehouse_id', '=', 'warehouses.id')->get();
-            
+
             //echo '<pre>'; print_r($lims_user_list); exit;
             return view('user.index', compact('lims_user_list', 'all_permission'));
         }
@@ -93,7 +93,7 @@ class UserController extends Controller
                 }),
             ],
         ]);
-        
+
         if($request->role_id == 5) {
             $this->validate($request, [
                 'phone_number' => [
@@ -128,7 +128,7 @@ class UserController extends Controller
             $data['is_active'] = true;
             Customer::create($data);
         }
-        return redirect('user')->with('message1', $message); 
+        return redirect('user')->with('message1', $message);
     }
 
     public function edit($id)
@@ -218,10 +218,8 @@ class UserController extends Controller
     {
         $user_id = $request['userIdArray'];
         foreach ($user_id as $id) {
-            $lims_user_data = User::find($id);
-            $lims_user_data->is_deleted = true;
-            $lims_user_data->is_active = false;
-            $lims_user_data->save();
+            $lims_user_data = User::where('id',$id)->delete();
+            // $lims_user_data->delete();
         }
         return 'User deleted successfully!';
     }
@@ -230,11 +228,9 @@ class UserController extends Controller
     {
         if(!env('USER_VERIFIED'))
             return redirect()->back()->with('not_permitted', 'This feature is disable for demo!');
-        
-        $lims_user_data = User::find($id);
-        $lims_user_data->is_deleted = true;
-        $lims_user_data->is_active = false;
-        $lims_user_data->save();
+
+        $lims_user_data = User::where('id',$id)->delete();
+        // $lims_user_data->delete();
         if(Auth::id() == $id){
             auth()->logout();
             return redirect('/login');

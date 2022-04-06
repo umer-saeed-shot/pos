@@ -24,6 +24,8 @@ Route::get('/hash',function(){
 Route::group(['middleware' => ['auth', 'active']], function() {
 
 	Route::get('/', 'HomeController@index');
+	Route::get('/pie-chart-filter/{category_id}/{type}', 'HomeController@pieChartFilter');
+	Route::get('/cash-flow-filter/{category_id}/{type}', 'HomeController@cashFlowFilter');
 	Route::get('/dashboard-filter/{start_date}/{end_date}', 'HomeController@dashboardFilter');
 
 	Route::get('language_switch/{locale}', 'LanguageController@switchLanguage');

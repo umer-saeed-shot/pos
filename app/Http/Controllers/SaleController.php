@@ -104,8 +104,8 @@ class SaleController extends Controller
     }
     public function saleData(Request $request)
     {
-
-        $columns = array(
+        try {
+            $columns = array(
             1 => 'created_at',
             2 => 'reference_no',
             4 => 'warehouse_id',
@@ -114,42 +114,41 @@ class SaleController extends Controller
         );
 
 
-        if(Auth::user()->role_id > 2 && config('staff_access') == 'own')
-            $totalData = Sale::where('user_id', Auth::id())->count();
-        else
-            $totalData = Sale::count();
+            if (Auth::user()->role_id > 2 && config('staff_access') == 'own') {
+                $totalData = Sale::where('user_id', Auth::id())->count();
+            } else {
+                $totalData = Sale::count();
+            }
 
-        $totalFiltered = $totalData;
-        if($request->input('length') != -1)
-            $limit = $request->input('length');
-        else
-            $limit = $totalData;
-        $start = $request->input('start');
-        $order = 'sales.'.$columns[$request->input('order.0.column')];
-        $dir = $request->input('order.0.dir');
-        if(empty($request->input('search.value'))){
-
-            if(Auth::user()->role_id > 2 && config('staff_access') == 'own')
-                $sales = Sale::with('biller', 'customer', 'warehouse', 'user')->offset($start)
+            $totalFiltered = $totalData;
+            if ($request->input('length') != -1) {
+                $limit = $request->input('length');
+            } else {
+                $limit = $totalData;
+            }
+            $start = $request->input('start');
+            $order = 'sales.'.$columns[$request->input('order.0.column')];
+            $dir = $request->input('order.0.dir');
+            if (empty($request->input('search.value'))) {
+                if (Auth::user()->role_id > 2 && config('staff_access') == 'own') {
+                    $sales = Sale::with('biller', 'customer', 'warehouse', 'user')->offset($start)
                             ->where('user_id', Auth::id())
                             ->limit($limit)
                             ->orderBy($order, $dir)
                             ->get();
-            else
-                $sales = Sale::with('biller', 'customer', 'warehouse', 'user')->offset($start)
+                } else {
+                    $sales = Sale::with('biller', 'customer', 'warehouse', 'user')->offset($start)
                             ->limit($limit)
                             ->orderBy($order, $dir)
                             ->get();
-        }
-        else
-        {
-
-            $search = $request->input('search.value');
-            if(Auth::user()->role_id > 2 && config('staff_access') == 'own') {
-                $sales =  Sale::select('sales.*')
+                }
+            } else {
+                $search = $request->input('search.value');
+                if (Auth::user()->role_id > 2 && config('staff_access') == 'own') {
+                    $sales =  Sale::select('sales.*')
                             ->with('biller', 'customer', 'warehouse', 'user')
                             ->join('customers', 'sales.customer_id', '=', 'customers.id')
-                            ->whereDate('sales.created_at', '=' , date('Y-m-d', strtotime(str_replace('/', '-', $search))))
+                            ->whereDate('sales.created_at', '=', date('Y-m-d', strtotime(str_replace('/', '-', $search))))
                             ->where('sales.user_id', Auth::id())
                             ->orwhere([
                                 ['sales.reference_no', 'LIKE', "%{$search}%"],
@@ -161,11 +160,10 @@ class SaleController extends Controller
                             ])
                             ->offset($start)
                             ->limit($limit)
-                            ->orderBy($order,$dir)->get();
+                            ->orderBy($order, $dir)->get();
 
-                $totalFiltered = Sale::
-                            join('customers', 'sales.customer_id', '=', 'customers.id')
-                            ->whereDate('sales.created_at', '=' , date('Y-m-d', strtotime(str_replace('/', '-', $search))))
+                    $totalFiltered = Sale::join('customers', 'sales.customer_id', '=', 'customers.id')
+                            ->whereDate('sales.created_at', '=', date('Y-m-d', strtotime(str_replace('/', '-', $search))))
                             ->where('sales.user_id', Auth::id())
                             ->orwhere([
                                 ['sales.reference_no', 'LIKE', "%{$search}%"],
@@ -176,67 +174,66 @@ class SaleController extends Controller
                                 ['sales.user_id', Auth::id()]
                             ])
                             ->count();
-            }
-            else {
-                $sales =  Sale::select('sales.*')
+                } else {
+                    $sales =  Sale::select('sales.*')
                             ->with('biller', 'customer', 'warehouse', 'user')
                             ->join('customers', 'sales.customer_id', '=', 'customers.id')
-                            ->whereDate('sales.created_at', '=' , date('Y-m-d', strtotime(str_replace('/', '-', $search))))
+                            ->whereDate('sales.created_at', '=', date('Y-m-d', strtotime(str_replace('/', '-', $search))))
                             ->where('sales.user_id', Auth::id())
                             ->orwhere('sales.reference_no', 'LIKE', "%{$search}%")
                             ->orwhere('customers.name', 'LIKE', "%{$search}%")
                             ->offset($start)
                             ->limit($limit)
-                            ->orderBy($order,$dir)->get();
+                            ->orderBy($order, $dir)->get();
 
-                $totalFiltered = Sale::
-                            join('customers', 'sales.customer_id', '=', 'customers.id')
-                            ->whereDate('sales.created_at', '=' , date('Y-m-d', strtotime(str_replace('/', '-', $search))))
+                    $totalFiltered = Sale::join('customers', 'sales.customer_id', '=', 'customers.id')
+                            ->whereDate('sales.created_at', '=', date('Y-m-d', strtotime(str_replace('/', '-', $search))))
                             ->where('sales.user_id', Auth::id())
                             ->orwhere('sales.reference_no', 'LIKE', "%{$search}%")
                             ->orwhere('customers.name', 'LIKE', "%{$search}%")
                             ->count();
+                }
             }
-        }
-        $data = array();
-        if(!empty($sales))
-        {
-            foreach ($sales as $key=>$sale)
-            {
-                $nestedData['id'] = $sale->id;
-                $nestedData['key'] = $key;
-                $nestedData['date'] = date("Y/m/d", strtotime($sale->created_at->toDateString()));
-                $nestedData['reference_no'] = $sale->reference_no;
-                $nestedData['biller'] = $sale->biller->name;
-                $nestedData['store'] = $sale->warehouse->name;
-                $nestedData['customer'] = $sale->customer->name;
+            $data = array();
+            if (!empty($sales)) {
+                foreach ($sales as $key=>$sale) {
+                    $nestedData['id'] = $sale->id;
+                    $nestedData['key'] = $key;
+                    $nestedData['date'] = date("Y/m/d", strtotime($sale->created_at->toDateString()));
+                    $nestedData['reference_no'] = $sale->reference_no;
+                    $nestedData['biller'] = $sale->biller->name;
+                    $nestedData['store'] = $sale->warehouse->name;
+                    $nestedData['customer'] = $sale->customer->name;
 
-                if($sale->sale_status == 1){
-                    $nestedData['sale_status'] = '<div class="badge badge-success">'.trans('file.Completed').'</div>';
-                    $sale_status = trans('file.Completed');
-                }
-                elseif($sale->sale_status == 2){
-                    $nestedData['sale_status'] = '<div class="badge badge-danger">'.trans('file.Pending').'</div>';
-                    $sale_status = trans('file.Pending');
-                }
-                else{
-                    $nestedData['sale_status'] = '<div class="badge badge-warning">'.trans('file.Draft').'</div>';
-                    $sale_status = trans('file.Draft');
-                }
+                    if ($sale->sale_status == 1) {
+                        $nestedData['sale_status'] = '<div class="badge badge-success">'.trans('file.Completed').'</div>';
+                        $sale_status = trans('file.Completed');
+                    } elseif ($sale->sale_status == 2) {
+                        $nestedData['sale_status'] = '<div class="badge badge-danger">'.trans('file.Pending').'</div>';
+                        $sale_status = trans('file.Pending');
+                    } else {
+                        $nestedData['sale_status'] = '<div class="badge badge-warning">'.trans('file.Draft').'</div>';
+                        $sale_status = trans('file.Draft');
+                    }
 
-                if($sale->payment_status == 1)
-                    $nestedData['payment_status'] = '<div class="badge badge-danger">'.trans('file.Pending').'</div>';
-                elseif($sale->payment_status == 2)
-                    $nestedData['payment_status'] = '<div class="badge badge-danger">'.trans('file.Due').'</div>';
-                elseif($sale->payment_status == 3)
-                    $nestedData['payment_status'] = '<div class="badge badge-warning">'.trans('file.Partial').'</div>';
-                else
-                    $nestedData['payment_status'] = '<div class="badge badge-success">'.trans('file.Paid').'</div>';
+                    if ($sale->payment_status == 1) {
+                        $nestedData['payment_status'] = '<div class="badge badge-danger">'.trans('file.Pending').'</div>';
+                    } elseif ($sale->payment_status == 2) {
+                        $nestedData['payment_status'] = '<div class="badge badge-danger">'.trans('file.Due').'</div>';
+                    } elseif ($sale->payment_status == 3) {
+                        $nestedData['payment_status'] = '<div class="badge badge-warning">'.trans('file.Partial').'</div>';
+                    } else {
+                        $nestedData['payment_status'] = '<div class="badge badge-success">'.trans('file.Paid').'</div>';
+                    }
 
-                $nestedData['grand_total'] = number_format($sale->grand_total, 2);
-                $nestedData['paid_amount'] = number_format($sale->paid_amount, 2);
-                $nestedData['due'] = number_format($sale->grand_total - $sale->paid_amount, 2);
-                $nestedData['options'] = '<div class="btn-group">
+                    $nestedData['grand_total'] = number_format($sale->grand_total, 2);
+                    $nestedData['paid_amount'] = number_format($sale->paid_amount, 2);
+                    $nestedData['due'] = number_format($sale->grand_total - $sale->paid_amount, 2);
+                    $nestedData['cash_payment'] = number_format($sale->cash_payment, 2);
+                    $nestedData['card_payment'] = number_format($sale->card_payment, 2);
+                    $nestedData['cheque_payment'] = number_format($sale->cheque_payment, 2);
+                    $nestedData['e_transfer_payment'] = number_format($sale->e_transfer_payment, 2);
+                    $nestedData['options'] = '<div class="btn-group">
                             <button type="button" class="btn btn-default btn-sm dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">'.trans("file.action").'
                               <span class="caret"></span>
                               <span class="sr-only">Toggle Dropdown</span>
@@ -246,17 +243,18 @@ class SaleController extends Controller
                                 <li>
                                     <button type="button" class="btn btn-link view"><i class="fa fa-eye"></i> '.trans('file.View').'</button>
                                 </li>';
-                if(in_array("sales-edit", $request['all_permission'])){
-                    if($sale->sale_status != 3)
-                        $nestedData['options'] .= '<li>
+                    if (in_array("sales-edit", $request['all_permission'])) {
+                        if ($sale->sale_status != 3) {
+                            $nestedData['options'] .= '<li>
                             <a href="'.route('sales.edit', $sale->id).'" class="btn btn-link"><i class="dripicons-document-edit"></i> '.trans('file.edit').'</a>
                             </li>';
-                    else
-                        $nestedData['options'] .= '<li>
+                        } else {
+                            $nestedData['options'] .= '<li>
                             <a href="'.url('sales/'.$sale->id.'/create').'" class="btn btn-link"><i class="dripicons-document-edit"></i> '.trans('file.edit').'</a>
                         </li>';
-                }
-                $nestedData['options'] .=
+                        }
+                    }
+                    $nestedData['options'] .=
                     '<li>
                         <button type="button" class="add-payment btn btn-link" data-id = "'.$sale->id.'" data-toggle="modal" data-target="#add-payment"><i class="fa fa-plus"></i> '.trans('file.Add Payment').'</button>
                     </li>
@@ -266,34 +264,39 @@ class SaleController extends Controller
                     <li>
                         <button type="button" class="add-delivery btn btn-link" data-id = "'.$sale->id.'"><i class="fa fa-truck"></i> '.trans('file.Add Delivery').'</button>
                     </li>';
-                if(in_array("sales-delete", $request['all_permission']))
-                    $nestedData['options'] .= \Form::open(["route" => ["sales.destroy", $sale->id], "method" => "DELETE"] ).'
+                    if (in_array("sales-delete", $request['all_permission'])) {
+                        $nestedData['options'] .= \Form::open(["route" => ["sales.destroy", $sale->id], "method" => "DELETE"]).'
                             <li>
                               <button type="submit" class="btn btn-link" onclick="return confirmDelete()"><i class="dripicons-trash"></i> '.trans("file.delete").'</button>
                             </li>'.\Form::close().'
                         </ul>
                     </div>';
-                // data for sale details by one click
-                $coupon = Coupon::find($sale->coupon_id);
-                if($coupon)
-                    $coupon_code = $coupon->code;
-                else
-                    $coupon_code = null;
+                    }
+                    // data for sale details by one click
+                    $coupon = Coupon::find($sale->coupon_id);
+                    if ($coupon) {
+                        $coupon_code = $coupon->code;
+                    } else {
+                        $coupon_code = null;
+                    }
 
-                $nestedData['sale'] = array( '[ "'.date(config('date_format'), strtotime($sale->created_at->toDateString())).'"', ' "'.$sale->reference_no.'"', ' "'.$sale_status.'"', ' "'.$sale->biller->name.'"', ' "'.$sale->biller->company_name.'"', ' "'.$sale->biller->email.'"', ' "'.$sale->biller->phone_number.'"', ' "'.$sale->biller->address.'"', ' "'.$sale->biller->city.'"', ' "'.$sale->customer->name.'"', ' "'.$sale->customer->phone_number.'"', ' "'.$sale->customer->address.'"', ' "'.$sale->customer->city.'"', ' "'.$sale->id.'"', ' "'.$sale->total_tax.'"', ' "'.$sale->total_discount.'"', ' "'.$sale->total_price.'"', ' "'.$sale->order_tax.'"', ' "'.$sale->order_tax_rate.'"', ' "'.$sale->order_discount.'"', ' "'.$sale->shipping_cost.'"', ' "'.$sale->grand_total.'"', ' "'.$sale->paid_amount.'"', ' "'.preg_replace('/\s+/S', " ", $sale->sale_note).'"', ' "'.preg_replace('/\s+/S', " ", $sale->staff_note).'"', ' "'.$sale->user->name.'"', ' "'.$sale->user->email.'"', ' "'.$sale->warehouse->name.'"', ' "'.$coupon_code.'"', ' "'.$sale->coupon_discount.'"]'
+                    $nestedData['sale'] = array( '[ "'.date(config('date_format'), strtotime($sale->created_at->toDateString())).'"', ' "'.$sale->reference_no.'"', ' "'.$sale_status.'"', ' "'.$sale->biller->name.'"', ' "'.$sale->biller->company_name.'"', ' "'.$sale->biller->email.'"', ' "'.$sale->biller->phone_number.'"', ' "'.$sale->biller->address.'"', ' "'.$sale->biller->city.'"', ' "'.$sale->customer->name.'"', ' "'.$sale->customer->phone_number.'"', ' "'.$sale->customer->address.'"', ' "'.$sale->customer->city.'"', ' "'.$sale->id.'"', ' "'.$sale->total_tax.'"', ' "'.$sale->total_discount.'"', ' "'.$sale->total_price.'"', ' "'.$sale->order_tax.'"', ' "'.$sale->order_tax_rate.'"', ' "'.$sale->order_discount.'"', ' "'.$sale->shipping_cost.'"', ' "'.$sale->grand_total.'"', ' "'.$sale->paid_amount.'"', ' "'.preg_replace('/\s+/S', " ", $sale->sale_note).'"', ' "'.preg_replace('/\s+/S', " ", $sale->staff_note).'"', ' "'.$sale->user->name.'"', ' "'.$sale->user->email.'"', ' "'.$sale->warehouse->name.'"', ' "'.$coupon_code.'"', ' "'.$sale->coupon_discount.'"]'
                 );
-                $data[] = $nestedData;
+                    $data[] = $nestedData;
+                }
             }
-        }
-        $json_data = array(
+            $json_data = array(
             "draw"            => intval($request->input('draw')),
             "recordsTotal"    => intval($totalData),
             "recordsFiltered" => intval($totalFiltered),
             "data"            => $data
         );
-		//echo json_encode($data);
+            //echo json_encode($data);
 
-        echo json_encode($json_data);
+            echo json_encode($json_data);
+        }catch(\Throwable $e){
+            return $e->getMessage();
+        }
     }
 
     public function saleDataHold(Request $request)
@@ -528,6 +531,7 @@ class SaleController extends Controller
     public function store(Request $request)
     {
         $data = $request->all();
+        // dd($data);
 		$isHold = false;
 		if ( $data['sale_status'] == 3)
 		{
@@ -542,6 +546,23 @@ class SaleController extends Controller
 			else
 			$data['paying_amount']=$data['grand_total'];
 		}
+        $paid_amount = 0;
+        if(isset($data['paying_amount_array'])){
+            for($i=0;$i < count($data['paying_amount_array']);$i++){
+                if($data['paid_by_id_array'][$i] == 1){
+                    $data['cash_payment'] = $data['paying_amount_array'][$i];
+                }elseif($data['paid_by_id_array'][$i] == 3){
+                    $data['card_payment'] = $data['paying_amount_array'][$i];
+                }elseif($data['paid_by_id_array'][$i] == 4){
+                    $data['cheque_payment'] = $data['paying_amount_array'][$i];
+                }elseif($data['paid_by_id_array'][$i] == 1){
+                    $data['e_transfer_payment'] = $data['paying_amount_array'][$i];
+                }
+                $paid_amount += $data['paying_amount_array'][$i];
+
+            }
+            $data['paid_amount'] = $paid_amount;
+        }
 		//echo '<pre>'; print_r($data); exit;
         $data['user_id'] = Auth::id();
         $cash_register_data = CashRegister::where([
@@ -567,7 +588,7 @@ class SaleController extends Controller
                 $lims_sale_data = Sale::find($data['sale_id']);
 				if($lims_sale_data)
 				{
-				$this->addPaymenttH($request);
+				    $this->addPaymenttH($request);
 					$lims_product_sale_data = Product_Sale::where('sale_id', $data['sale_id'])->get();
 					foreach ($lims_product_sale_data as $product_sale_data) {
 						$product_sale_data->delete();
@@ -749,111 +770,224 @@ class SaleController extends Controller
         }
         if($data['payment_status'] == 3 || $data['payment_status'] == 4 || ($data['payment_status'] == 2 && $data['pos'] && $data['paid_amount'] > 0)) {
 
-            if($data['paid_by_id'] == 1)
-                $paying_method = 'Cash';
-            elseif ($data['paid_by_id'] == 2){
-                $paying_method = 'Gift Card';
-            }
-            elseif ($data['paid_by_id'] == 3)
-                $paying_method = 'Card';
-            elseif ($data['paid_by_id'] == 4)
-                $paying_method = 'Cheque';
-            elseif ($data['paid_by_id'] == 5)
-                $paying_method = 'Paypal';
-            elseif ($data['paid_by_id'] == 7)
-                $paying_method = 'E-Transfer';
-            else
-                $paying_method = 'Deposit';
-            $lims_payment_data = new Payment();
-            $lims_payment_data->user_id = Auth::id();
-            if($cash_register_data)
-                $lims_payment_data->cash_register_id = $cash_register_data->id;
-            $lims_account_data = Account::where('is_default', true)->first();
-            $lims_payment_data->account_id = $lims_account_data->id;
-            $lims_payment_data->sale_id = $lims_sale_data->id;
-            $data['payment_reference'] = 'spr-'.date("Ymd").'-'.date("his");
-            $lims_payment_data->payment_reference = $data['payment_reference'];
-            $lims_payment_data->amount = $data['paid_amount'];
-            $lims_payment_data->change = $data['paying_amount'] - $data['grand_total'];
-            $lims_payment_data->paying_method = $paying_method;
-            $lims_payment_data->payment_note = $data['payment_note'];
-			//dd($lims_payment_data);
-            $lims_payment_data->save();
-
-            $lims_payment_data = Payment::latest()->first();
-            $data['payment_id'] = $lims_payment_data->id;
-			//dd($paying_method);
-            if($paying_method == 'Card'){
-
-                    $data['customer_id'] = $lims_sale_data->customer_id;
-                    $data['charge_id'] = $data['cardnumber'];
-                    $data['payment_id'] = $lims_payment_data->id;
-                    $data['customer_stripe_id'] = $lims_sale_data->customer_id;
-                    PaymentWithCreditCard::create($data);
-            }
-            elseif ($paying_method == 'Gift Card') {
-                $lims_gift_card_data = GiftCard::find($data['gift_card_id']);
-                $lims_gift_card_data->expense += $data['paid_amount'];
-                $lims_gift_card_data->save();
-                PaymentWithGiftCard::create($data);
-            }
-            elseif ($paying_method == 'Cheque') {
-                PaymentWithCheque::create($data);
-            }
-            elseif ($paying_method == 'Paypal') {
-                $provider = new ExpressCheckout;
-                $paypal_data = [];
-                $paypal_data['items'] = [];
-                foreach ($data['product_id'] as $key => $product_id) {
-                    $lims_product_data = Product::find($product_id);
-                    $paypal_data['items'][] = [
-                        'name' => $lims_product_data->name,
-                        'price' => ($data['subtotal'][$key]/$data['qty'][$key]),
-                        'qty' => $data['qty'][$key]
-                    ];
+            if(!isset($data['paid_by_id_array'])){
+                if($data['paid_by_id'] == 1)
+                    $paying_method = 'Cash';
+                elseif ($data['paid_by_id'] == 2){
+                    $paying_method = 'Gift Card';
                 }
-                $paypal_data['items'][] = [
-                    'name' => 'Order Tax',
-                    'price' => $data['order_tax'],
-                    'qty' => 1
-                ];
-                $paypal_data['items'][] = [
-                    'name' => 'Order Discount',
-                    'price' => $data['order_discount'] * (-1),
-                    'qty' => 1
-                ];
-                $paypal_data['items'][] = [
-                    'name' => 'Shipping Cost',
-                    'price' => $data['shipping_cost'],
-                    'qty' => 1
-                ];
-                if($data['grand_total'] != $data['paid_amount']){
+                elseif ($data['paid_by_id'] == 3)
+                    $paying_method = 'Card';
+                elseif ($data['paid_by_id'] == 4)
+                    $paying_method = 'Cheque';
+                elseif ($data['paid_by_id'] == 5)
+                    $paying_method = 'Paypal';
+                elseif ($data['paid_by_id'] == 7)
+                    $paying_method = 'E-Transfer';
+                else
+                    $paying_method = 'Deposit';
+                $lims_payment_data = new Payment();
+                $lims_payment_data->user_id = Auth::id();
+                if($cash_register_data)
+                    $lims_payment_data->cash_register_id = $cash_register_data->id;
+                $lims_account_data = Account::where('is_default', true)->first();
+                $lims_payment_data->account_id = $lims_account_data->id;
+                $lims_payment_data->sale_id = $lims_sale_data->id;
+                $data['payment_reference'] = 'spr-'.date("Ymd").'-'.date("his");
+                $lims_payment_data->payment_reference = $data['payment_reference'];
+                $lims_payment_data->amount = $data['paid_amount'];
+                $lims_payment_data->change = $data['paying_amount'] - $data['grand_total'];
+                $lims_payment_data->paying_method = $paying_method;
+                $lims_payment_data->payment_note = $data['payment_note'];
+                //dd($lims_payment_data);
+                $lims_payment_data->save();
+
+                $lims_payment_data = Payment::latest()->first();
+                $data['payment_id'] = $lims_payment_data->id;
+                //dd($paying_method);
+                if($paying_method == 'Card'){
+
+                        $data['customer_id'] = $lims_sale_data->customer_id;
+                        $data['charge_id'] = $data['cardnumber'];
+                        $data['payment_id'] = $lims_payment_data->id;
+                        $data['customer_stripe_id'] = $lims_sale_data->customer_id;
+                        PaymentWithCreditCard::create($data);
+                }
+                elseif ($paying_method == 'Gift Card') {
+                    $lims_gift_card_data = GiftCard::find($data['gift_card_id']);
+                    $lims_gift_card_data->expense += $data['paid_amount'];
+                    $lims_gift_card_data->save();
+                    PaymentWithGiftCard::create($data);
+                }
+                elseif ($paying_method == 'Cheque') {
+                    PaymentWithCheque::create($data);
+                }
+                elseif ($paying_method == 'Paypal') {
+                    $provider = new ExpressCheckout;
+                    $paypal_data = [];
+                    $paypal_data['items'] = [];
+                    foreach ($data['product_id'] as $key => $product_id) {
+                        $lims_product_data = Product::find($product_id);
+                        $paypal_data['items'][] = [
+                            'name' => $lims_product_data->name,
+                            'price' => ($data['subtotal'][$key]/$data['qty'][$key]),
+                            'qty' => $data['qty'][$key]
+                        ];
+                    }
                     $paypal_data['items'][] = [
-                        'name' => 'Due',
-                        'price' => ($data['grand_total'] - $data['paid_amount']) * (-1),
+                        'name' => 'Order Tax',
+                        'price' => $data['order_tax'],
                         'qty' => 1
                     ];
-                }
-                //return $paypal_data;
-                $paypal_data['invoice_id'] = $lims_sale_data->reference_no;
-                $paypal_data['invoice_description'] = "Reference # {$paypal_data['invoice_id']} Invoice";
-                $paypal_data['return_url'] = url('/sale/paypalSuccess');
-                $paypal_data['cancel_url'] = url('/sale/create');
+                    $paypal_data['items'][] = [
+                        'name' => 'Order Discount',
+                        'price' => $data['order_discount'] * (-1),
+                        'qty' => 1
+                    ];
+                    $paypal_data['items'][] = [
+                        'name' => 'Shipping Cost',
+                        'price' => $data['shipping_cost'],
+                        'qty' => 1
+                    ];
+                    if($data['grand_total'] != $data['paid_amount']){
+                        $paypal_data['items'][] = [
+                            'name' => 'Due',
+                            'price' => ($data['grand_total'] - $data['paid_amount']) * (-1),
+                            'qty' => 1
+                        ];
+                    }
+                    //return $paypal_data;
+                    $paypal_data['invoice_id'] = $lims_sale_data->reference_no;
+                    $paypal_data['invoice_description'] = "Reference # {$paypal_data['invoice_id']} Invoice";
+                    $paypal_data['return_url'] = url('/sale/paypalSuccess');
+                    $paypal_data['cancel_url'] = url('/sale/create');
 
-                $total = 0;
-                foreach($paypal_data['items'] as $item) {
-                    $total += $item['price']*$item['qty'];
+                    $total = 0;
+                    foreach($paypal_data['items'] as $item) {
+                        $total += $item['price']*$item['qty'];
+                    }
+
+                    $paypal_data['total'] = $total;
+                    $response = $provider->setExpressCheckout($paypal_data);
+                    // This will redirect user to PayPal
+                    return redirect($response['paypal_link']);
+                }
+                elseif($paying_method == 'Deposit'){
+                    $lims_customer_data = Customer::find($data['customer_id']);
+                    $lims_customer_data->expense += $data['paid_amount'];
+                    $lims_customer_data->save();
+                }
+            }else{
+                for($i=0;$i < count($data['paying_amount_array']);$i++){
+                    if($data['paid_by_id_array'][$i] == 1)
+                        $paying_method = 'Cash';
+                    elseif ($data['paid_by_id_array'][$i] == 2){
+                        $paying_method = 'Gift Card';
+                    }
+                    elseif ($data['paid_by_id_array'][$i] == 3)
+                        $paying_method = 'Card';
+                    elseif ($data['paid_by_id_array'][$i] == 4)
+                        $paying_method = 'Cheque';
+                    elseif ($data['paid_by_id_array'][$i] == 5)
+                        $paying_method = 'Paypal';
+                    elseif ($data['paid_by_id_array'][$i] == 7)
+                        $paying_method = 'E-Transfer';
+                    else
+                        $paying_method = 'Deposit';
+                    $lims_payment_data = new Payment();
+                    $lims_payment_data->user_id = Auth::id();
+                    if($cash_register_data)
+                        $lims_payment_data->cash_register_id = $cash_register_data->id;
+                    $lims_account_data = Account::where('is_default', true)->first();
+                    $lims_payment_data->account_id = $lims_account_data->id;
+                    $lims_payment_data->sale_id = $lims_sale_data->id;
+                    $data['payment_reference'] = 'spr-'.date("Ymd").'-'.date("his");
+                    $lims_payment_data->payment_reference = $data['payment_reference'];
+                    $lims_payment_data->amount = $data['paying_amount_array'][$i];
+                    $lims_payment_data->change = $data['paying_amount_array'][$i] - $data['grand_total'];
+                    $lims_payment_data->paying_method = $paying_method;
+                    $lims_payment_data->payment_note = $data['payment_note_array'][$i];
+                    //dd($lims_payment_data);
+                    $lims_payment_data->save();
+
+                    // $lims_payment_data = Payment::latest()->first();
+                    $data['payment_id'] = $lims_payment_data->id;
+
+                    if($paying_method == 'Card'){
+
+                            $data['customer_id'] = $lims_sale_data->customer_id;
+                            $data['charge_id'] = $data['cardnumber'];
+                            $data['payment_id'] = $lims_payment_data->id;
+                            $data['customer_stripe_id'] = $lims_sale_data->customer_id;
+                            PaymentWithCreditCard::create($data);
+                    }
+                    elseif ($paying_method == 'Gift Card') {
+                        $lims_gift_card_data = GiftCard::find($data['gift_card_id']);
+                        $lims_gift_card_data->expense += $data['paying_amount_array'][$i];
+                        $lims_gift_card_data->save();
+                        PaymentWithGiftCard::create($data);
+                    }
+                    elseif ($paying_method == 'Cheque') {
+
+                        PaymentWithCheque::create($data);
+                    }
+                    elseif ($paying_method == 'Paypal') {
+                        $provider = new ExpressCheckout;
+                        $paypal_data = [];
+                        $paypal_data['items'] = [];
+                        foreach ($data['product_id'] as $key => $product_id) {
+                            $lims_product_data = Product::find($product_id);
+                            $paypal_data['items'][] = [
+                                'name' => $lims_product_data->name,
+                                'price' => ($data['subtotal'][$key]/$data['qty'][$key]),
+                                'qty' => $data['qty'][$key]
+                            ];
+                        }
+                        $paypal_data['items'][] = [
+                            'name' => 'Order Tax',
+                            'price' => $data['order_tax'],
+                            'qty' => 1
+                        ];
+                        $paypal_data['items'][] = [
+                            'name' => 'Order Discount',
+                            'price' => $data['order_discount'] * (-1),
+                            'qty' => 1
+                        ];
+                        $paypal_data['items'][] = [
+                            'name' => 'Shipping Cost',
+                            'price' => $data['shipping_cost'],
+                            'qty' => 1
+                        ];
+                        if($data['grand_total'] != $data['paid_amount']){
+                            $paypal_data['items'][] = [
+                                'name' => 'Due',
+                                'price' => ($data['grand_total'] - $data['paid_amount']) * (-1),
+                                'qty' => 1
+                            ];
+                        }
+                        //return $paypal_data;
+                        $paypal_data['invoice_id'] = $lims_sale_data->reference_no;
+                        $paypal_data['invoice_description'] = "Reference # {$paypal_data['invoice_id']} Invoice";
+                        $paypal_data['return_url'] = url('/sale/paypalSuccess');
+                        $paypal_data['cancel_url'] = url('/sale/create');
+
+                        $total = 0;
+                        foreach($paypal_data['items'] as $item) {
+                            $total += $item['price']*$item['qty'];
+                        }
+
+                        $paypal_data['total'] = $total;
+                        $response = $provider->setExpressCheckout($paypal_data);
+                        // This will redirect user to PayPal
+                        return redirect($response['paypal_link']);
+                    }
+                    elseif($paying_method == 'Deposit'){
+                        $lims_customer_data = Customer::find($data['customer_id']);
+                        $lims_customer_data->expense += $data['paying_amount_array'][$i];
+                        $lims_customer_data->save();
+                    }
                 }
 
-                $paypal_data['total'] = $total;
-                $response = $provider->setExpressCheckout($paypal_data);
-                 // This will redirect user to PayPal
-                return redirect($response['paypal_link']);
-            }
-            elseif($paying_method == 'Deposit'){
-                $lims_customer_data = Customer::find($data['customer_id']);
-                $lims_customer_data->expense += $data['paid_amount'];
-                $lims_customer_data->save();
             }
         }
         if($isHold == false)
@@ -2623,6 +2757,7 @@ class SaleController extends Controller
                 $gift_card_id[] = $lims_payment_gift_card_data->gift_card_id;
             }
             elseif($payment->paying_method == 'Cheque'){
+
                 $lims_payment_cheque_data = PaymentWithCheque::where('payment_id',$payment->id)->first();
                 $cheque_no[] = $lims_payment_cheque_data->cheque_no;
             }
@@ -3011,9 +3146,12 @@ class SaleController extends Controller
                     }
 
                     $lims_product_data->qty += $product_sale->qty;
-                    $lims_product_warehouse_data->qty += $product_sale->qty;
+                    if($lims_product_warehouse_data !== null){
+
+                        $lims_product_warehouse_data->qty += $product_sale->qty;
+                        $lims_product_warehouse_data->save();
+                    }
                     $lims_product_data->save();
-                    $lims_product_warehouse_data->save();
                 }
 
                 $product_sale->delete();
@@ -3142,9 +3280,14 @@ class SaleController extends Controller
                 }
 
                 $lims_product_data->qty += $product_sale->qty;
-                $lims_product_warehouse_data->qty += $product_sale->qty;
+                if($lims_product_warehouse_data !== null){
+
+                    $lims_product_warehouse_data->qty += $product_sale->qty;
+                    $lims_product_warehouse_data->save();
+                }
+
                 $lims_product_data->save();
-                $lims_product_warehouse_data->save();
+
             }
             $product_sale->delete();
         }

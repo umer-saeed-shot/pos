@@ -89,10 +89,10 @@
     </div>
 </div> -->
 @if(session()->has('not_permitted'))
-  <div class="alert alert-danger alert-dismissible text-center"><button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>{{ session()->get('not_permitted') }}</div> 
+  <div class="alert alert-danger alert-dismissible text-center"><button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>{{ session()->get('not_permitted') }}</div>
 @endif
 @if(session()->has('message'))
-  <div class="alert alert-success alert-dismissible text-center"><button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>{{ session()->get('message') }}</div> 
+  <div class="alert alert-success alert-dismissible text-center"><button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>{{ session()->get('message') }}</div>
 @endif
       <div class="row">
         <div class="container-fluid">
@@ -153,6 +153,24 @@
               <div class="card line-chart-example">
                 <div class="card-header d-flex align-items-center">
                   <h4>{{trans('file.Cash Flow')}}</h4>
+                  <div class="col-4 float-right">
+                    <select name="category" id="cash_flow_category_id" class="form-control" onchange="cashFlowFilter()">
+                        <option value="0">Search Category Wise</option>
+                        @foreach ($categories as $category)
+                              <option value="{{ $category->id }}">{{ $category->name }}</option>
+                        @endforeach
+                    </select>
+                  </div>
+                  <div class="col-4 float-right">
+                    <select name="type" id="type" class="cash_flow_form-control" onchange="cashFlowFilter()">
+                        <option value="0">Search Type Wise</option>
+                        <option value="digital">Digital</option>
+                        <option value="standard">Standard</option>
+                        <option value="combo">Combo</option>
+
+                    </select>
+                  </div>
+
                 </div>
                 <div class="card-body">
                   @php
@@ -181,6 +199,23 @@
               <div class="card">
                 <div class="card-header d-flex justify-content-between align-items-center">
                   <h4>{{date('F')}} {{date('Y')}}</h4>
+                  <div class="col-4 float-right">
+                    <select name="category" id="pie_chart_category_id" class="form-control" onchange="pieChartFilter()">
+                        <option value="0">Search Category Wise</option>
+                        @foreach ($categories as $category)
+                              <option value="{{ $category->id }}">{{ $category->name }}</option>
+                        @endforeach
+                    </select>
+                  </div>
+                  <div class="col-4 float-right">
+                    <select name="type" id="pie_chart_type" class="form-control" onchange="pieChartFilter()">
+                        <option value="0">Search Type Wise</option>
+                        <option value="digital">Digital</option>
+                        <option value="standard">Standard</option>
+                        <option value="combo">Combo</option>
+
+                    </select>
+                  </div>
                 </div>
                 <div class="pie-chart mb-2">
                     <canvas id="transactionChart" data-color = "{{$color}}" data-color_rgba = "{{$color_rgba}}" data-revenue={{$revenue}} data-purchase={{$purchase}} data-expense={{$expense}} data-label1="{{trans('file.Purchase')}}" data-label2="{{trans('file.revenue')}}" data-label3="{{trans('file.Expense')}}" width="100" height="95"> </canvas>
@@ -189,7 +224,7 @@
             </div>
           </div>
         </div>
-        
+
         <div class="container-fluid">
           <div class="row">
             <div class="col-md-12">
@@ -452,7 +487,189 @@
           </div>
         </div>
       </section>
-      
+
+<script>
+
+    function drawNewCashFlowGraph(month,payment_recieved,payment_sent){
+        if(!(month||payment_recieved||payment_sent)){
+            alert("No data available");
+        }else{
+            var brandPrimary;
+            var brandPrimaryRgba;
+
+            // ------------------------------------------------------- //
+            // Line Chart
+            // ------------------------------------------------------ //
+            var CASHFLOW = $("#cashFlow");
+            if (CASHFLOW.length > 0) {
+                var recieved = payment_recieved;
+                brandPrimary = CASHFLOW.data("color");
+                brandPrimaryRgba = CASHFLOW.data("color_rgba");
+                var sent = payment_sent;
+                var month = month;
+                var label1 = CASHFLOW.data("label1");
+                var label2 = CASHFLOW.data("label2");
+                var cashFlow_chart = new Chart(CASHFLOW, {
+                    type: "line",
+                    data: {
+                        labels: [
+                            month[0],
+                            month[1],
+                            month[2],
+                            month[3],
+                            month[4],
+                            month[5],
+                            month[6],
+                        ],
+                        datasets: [
+                            {
+                                label: label1,
+                                fill: true,
+                                lineTension: 0.3,
+                                backgroundColor: "transparent",
+                                borderColor: brandPrimary,
+                                borderCapStyle: "butt",
+                                borderDash: [],
+                                borderDashOffset: 0.0,
+                                borderJoinStyle: "miter",
+                                borderWidth: 3,
+                                pointBorderColor: brandPrimary,
+                                pointBackgroundColor: "#fff",
+                                pointBorderWidth: 5,
+                                pointHoverRadius: 5,
+                                pointHoverBackgroundColor: brandPrimary,
+                                pointHoverBorderColor: "rgba(220,220,220,1)",
+                                pointHoverBorderWidth: 2,
+                                pointRadius: 1,
+                                pointHitRadius: 10,
+                                data: [
+                                    recieved[0],
+                                    recieved[1],
+                                    recieved[2],
+                                    recieved[3],
+                                    recieved[4],
+                                    recieved[5],
+                                    recieved[6],
+                                ],
+                                spanGaps: false,
+                            },
+                            {
+                                label: label2,
+                                fill: true,
+                                lineTension: 0.3,
+                                backgroundColor: "transparent",
+                                borderColor: "rgba(255, 137, 82, 1)",
+                                borderCapStyle: "butt",
+                                borderDash: [],
+                                borderDashOffset: 0.0,
+                                borderJoinStyle: "miter",
+                                borderWidth: 3,
+                                pointBorderColor: "#ff8952",
+                                pointBackgroundColor: "#fff",
+                                pointBorderWidth: 5,
+                                pointHoverRadius: 5,
+                                pointHoverBackgroundColor: "#ff8952",
+                                pointHoverBorderColor: "rgba(220,220,220,1)",
+                                pointHoverBorderWidth: 2,
+                                pointRadius: 1,
+                                pointHitRadius: 10,
+                                data: [
+                                    sent[0],
+                                    sent[1],
+                                    sent[2],
+                                    sent[3],
+                                    sent[4],
+                                    sent[5],
+                                    sent[6],
+                                ],
+                                spanGaps: false,
+                            },
+                        ],
+                    },
+                });
+            }
+
+        }
+    }
+
+    function drawNewPieChart(revenue,purchase,expense) {
+        if(!(revenue||purchase||expense)){
+            alert("No data available");
+        }else{
+          var brandPrimary;
+          var brandPrimaryRgba;
+          var TRANSACTIONCHART = $("#transactionChart");
+          if (TRANSACTIONCHART.length > 0) {
+              brandPrimary = TRANSACTIONCHART.data("color");
+              brandPrimaryRgba = TRANSACTIONCHART.data("color_rgba");
+              var revenue = revenue;
+              var purchase = purchase;
+              var expense = expense;
+              var label1 = TRANSACTIONCHART.data("label1");
+              var label2 = TRANSACTIONCHART.data("label2");
+              var label3 = TRANSACTIONCHART.data("label3");
+              var myTransactionChart = new Chart(TRANSACTIONCHART, {
+                  type: "doughnut",
+                  data: {
+                      labels: [label1, label2, label3],
+                      datasets: [
+                          {
+                              data: [purchase, revenue, expense],
+                              borderWidth: [1, 1, 1],
+                              backgroundColor: [brandPrimary, "#ff8952", "#858c85"],
+                              hoverBackgroundColor: [
+                                  brandPrimaryRgba,
+                                  "rgba(255, 137, 82, 0.8)",
+                                  "rgb(133, 140, 133, 0.8)",
+                              ],
+                              hoverBorderWidth: [4, 4, 4],
+                              hoverBorderColor: [
+                                  brandPrimaryRgba,
+                                  "rgba(255, 137, 82, 0.8)",
+                                  "rgb(133, 140, 133, 0.8)",
+                              ],
+                          },
+                      ],
+                  },
+              });
+          }
+        }
+
+    }
+    function pieChartFilter(){
+        var category_id = $('#pie_chart_category_id').val();
+        var type = $('#pie_chart_type').val();
+
+        $.ajax({
+            type: "GET",
+            url: "pie-chart-filter/"+category_id+"/"+type,
+            data: "",
+            success: function (response) {
+
+                if(Array.isArray(response)){
+                    drawNewPieChart(response[0],response[1],response[2]);
+                }
+            }
+        });
+    }
+    function cashFlowFilter(){
+        var category_id = $('#cash_flow_category_id').val();
+        var type = $('#cash_flow_type').val();
+
+        $.ajax({
+            type: "GET",
+            url: "cash-flow-filter/"+category_id+"/"+type,
+            data: "",
+            success: function (response) {
+
+                if(Array.isArray(response)){
+                    drawNewCashFlowGraph(response[0],response[1],response[2]);
+                }
+            }
+        });
+
+    }
+</script>
 <script type="text/javascript">
     // Show and hide color-switcher
     $(".color-switcher .switcher-button").on('click', function() {

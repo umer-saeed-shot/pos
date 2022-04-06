@@ -824,12 +824,14 @@
                         <div class="row">
                             <div class="col-md-12">
                                 <div class="row">
-                                    <div class="col-md-4" style="display:none;">
+                                    <div class="col-md-4" style="display: none">
                                         <div class="form-group">
                                             @if($lims_pos_setting_data)
                                             <input type="hidden" name="warehouse_id_hidden" value="{{$lims_pos_setting_data->warehouse_id}}">
                                             @endif
+
                                          <select style="display:none;" required id="warehouse_id" name="warehouse_id" class=" form-control">
+                                            <option value="choose">Choose warehouse</option>
                                                 @foreach($lims_warehouse_list as $warehouse)
                                                 <option value="{{$warehouse->id}}">{{$warehouse->name}}</option>
                                                 @endforeach
@@ -854,7 +856,10 @@
                                     <div class="col-md-4">
                                         <div class="form-group">
                                             @if($lims_pos_setting_data)
-                                            <input type="hidden" name="customer_id_hidden" value="{{$lims_customer_list[0]->id}}">
+
+                                                @if(count($lims_customer_list) > 0)
+                                                    <input type="hidden" name="customer_id_hidden" value="{{$lims_customer_list[0]->id}}">
+                                                @endif
                                             <!--<input type="hidden" name="customer_id_hidden" value="{{$lims_pos_setting_data->customer_id}}">-->
                                             @endif
                                             <div class="input-group pos">
@@ -972,6 +977,14 @@
                             </div>
                         </div>
                     </div>
+                    <div class="col-12 totals" id="payment-options" style="border-top: 2px solid #e4e6fc; padding-top: 10px; display:none">
+                        <h2 class="col-sm-4 offset-8">Due Details:</h2>
+                        <div class="row">
+
+
+                        </div>
+
+                    </div>
                     <div class="payment-amount">
                         <h2 id="pa">{{trans('file.grand total')}} <span id="grand-total">0.00</span></h2>
                         <h2 id="da" style="display: none">Due :  <span id="due-total">0.00</span></h2>
@@ -1030,7 +1043,7 @@
                                     <div class="row">
                                         <div class="col-md-6 mt-1">
                                             <label>{{trans('file.Recieved Amount')}} *</label>
-                                            <input type="text" name="paying_amount" class="form-control numkey paying_amount" required step="any" autocomplete="off">
+                                            <input type="text" name="paying_amount"  class="form-control numkey paying_amount" required step="any" autocomplete="off">
                                         </div>
                                         <div class="col-md-6 mt-1">
                                             <label>{{trans('file.Paying Amount')}} *</label>
@@ -1043,7 +1056,7 @@
                                         <div class="col-md-6 mt-1">
                                             <input type="hidden" name="paid_by_id">
                                             <label>{{trans('file.Paid By')}}</label>
-                                            <select name="paid_by_id_select" class="form-control selectpicker" style="height:44%;">
+                                            <select name="paid_by_id_select" class="form-control selectpicker" id="paid_by_id_select" style="height:44%;">
                                                 <option value="1">Cash</option>
                                                 <!--<option value="2">Gift Card</option>-->
                                                 <option value="3">Card</option>
@@ -1072,27 +1085,27 @@
                                         </div>
                                         <div class="form-group col-md-12 cheque">
                                             <label>{{trans('file.Cheque Number')}} *</label>
-                                            <input type="text" name="cheque_no" class="form-control">
+                                            <input type="text" name="cheque_no" class="form-control" id="cheque_no">
                                         </div>
                                         <div class="form-group col-md-12">
                                             <label>{{trans('file.Payment Note')}}</label>
-                                            <textarea id="payment_note" rows="2" class="form-control" name="payment_note"></textarea>
+                                            <textarea id="payment_note" rows="2" class="form-control" name="payment_note" id="payment_note"></textarea>
                                         </div>
                                     </div>
                                     <div class="row">
                                         <div class="col-md-6 form-group">
                                             <label>{{trans('file.Sale Note')}}</label>
-                                            <textarea rows="3" class="form-control" name="sale_note"></textarea>
+                                            <textarea rows="3" class="form-control" name="sale_note" id="sale_note"></textarea>
                                         </div>
                                         <div class="col-md-6 form-group">
                                             <label>{{trans('file.Staff Note')}}</label>
-                                            <textarea rows="3" class="form-control" name="staff_note"></textarea>
+                                            <textarea rows="3" class="form-control" name="staff_note" id="staff_note"></textarea>
                                         </div>
                                     </div>
                                     <div class="mt-6 newsubmit row" style="margin-left: 5px">
                                         <button id="pay_anyway" type="button" class="btn btn-primary" style="display: none">Save</button>
-                                        <button id="submit-btn" type="button" class="btn btn-primary">{{trans('file.submit')}}</button>
-                                        <button style="background-color: #4db2ec; display:none; float:left;" type="button" class="btn btn-primary draft-btnc" id=""><i class="dripicons-flag"></i> Hold</button>
+                                        <button id="submit-btn" type="button" class="btn btn-primary" style="margin-left: 2%">{{trans('file.submit')}}</button>
+                                        <button style="background-color: #4db2ec; display:none; float:left;margin-left: 2%" type="button" class="btn btn-primary draft-btnc" id="" ><i class="dripicons-flag"></i> Hold</button>
                                     </div>
                                 </div>
                                 <div class="col-md-2 qc" data-initial="1">
@@ -2564,8 +2577,11 @@ $('#misc_qty').on('input',function(e){
         {
         var audio = $("#mysoundclip2")[0];
         audio.play();
-        $('input[name="paid_amount"]').val($("#grand-total").text());
-        $('input[name="paying_amount"]').val($("#grand-total").text());
+        if($('#payment_amount_array').length == 0){
+
+            $('input[name="paying_amount"]').val($("#grand-total").text());
+            $('input[name="paid_amount"]').val($("#grand-total").text());
+        }
         $('.qc').data('initial', 1);
         }
     });
@@ -2603,37 +2619,98 @@ $('#misc_qty').on('input',function(e){
         var paid = $('.paid_amount').val();
 
         // $('.payment-form').submit();
-
-        if(compare == 3)
-        {
-            if(!$('.external-me').prop('checked'))
+        if($('#paid_by_id_array').length == 0){
+            if(compare == 3)
             {
-                if($('.card-errors').text() == "")
+                if(!$('.external-me').prop('checked'))
                 {
-                   if($( 'input[name="cardnumber"]' ).val() != "")
-                     $('.payment-form').submit();
-                     else
-                     alert('Enter Card Number');
-                }
-                else
-                {
-                    alert("the card number is invalid");
-                }
-            }
-
-                if ($('.external-me').prop('checked')) {
-
+                    if($('.card-errors').text() == "")
+                    {
+                    if($( 'input[name="cardnumber"]' ).val() != "")
                         $('.payment-form').submit();
+                        else
+                        alert('Enter Card Number');
+                    }
+                    else
+                    {
+                        alert("the card number is invalid");
+                    }
+                }
 
-                 }
+                    if ($('.external-me').prop('checked')) {
 
-         }
-        else
-        {
+                            $('.payment-form').submit();
 
+                    }
+
+            }
+            else if(compare == 4)
+            {
+                if($('#cheque_no').val() == ""){
+                    alert("Cheque number cannot be empty");
+                }else{
+
+                    $('.payment-form').submit();
+                }
+
+            }else{
+
+                $('.payment-form').submit();
+
+            }
+        }else{
+
+            var submit = true;
+            $(".payment-form").append('<input type="hidden" name="paying_amount_array[]" value="'+$('.paying_amount').val()+'" id="payment_amount_array"><input type="hidden" id="paid_by_id_array" name="paid_by_id_array[]" value="'+$('#paid_by_id_select').val()+'"><input type="hidden" name="sale_note_array[]" value="'+$('#sale_note').val()+'" /><input type="hidden" name="staff_note_array[]" value="'+$('#staff_note').val()+'" /><input type="hidden" name="payment_note_array[]" value="'+$('#payment_note').val()+'" />');
+
+            var paid_ids = [];
+
+            $('#paid_by_id_array').each(function () {
+                paid_ids.push($(this).val());
+            });
+
+            paid_ids.push($('#paid_by_id_select').val());
+            $.each(paid_ids, function (indexInArray, val) {
+
+                if(val == 4){
+
+
+                    if($('#cheque_no').val() == ""){
+                        alert("Cheque number cannot be empty!");
+                        submit = false;
+
+                    }
+
+                }else if(val == 3){
+
+
+                    if(!$('.external-me').prop('checked'))
+                    {
+                        if($('.card-errors').text() == "")
+                        {
+                            if($( 'input[name="cardnumber"]' ).val() == "")
+                                alert('Enter Card Number');
+                                submit = false;
+
+                        }
+                        else
+                        {
+                            alert("the card number is invalid");
+                            submit = false;
+
+                        }
+                    }
+
+                }
+            });
+
+        if(submit == true){
             $('.payment-form').submit();
+        }
 
         }
+
+
 
     });
 
@@ -3366,15 +3443,14 @@ $('.paysubmit').click(function(){
 	$('#draptSub').attr('action', act).submit();
 });
     $('.payment-form').submit( function(e) {
+
         var rownumber = $('table.order-list tbody tr:last').index();
         if (rownumber < 0) {
             alert("Please insert product to order table!!!")
             e.preventDefault();
         }
-        // else if( parseFloat( $('input[name="paying_amount"]').val() ) < parseFloat( $('input[name="paid_amount"]').val() ) ){
-        //alert('Paying amount cannot be bigger than recieved amount');
-        //e.preventDefault();
-        //}
+
+
         $('input[name="paid_by_id"]').val($('select[name="paid_by_id_select"]').val());
         $('input[name="order_tax_rate"]').val($('select[name="order_tax_rate_select"]').val());
 
@@ -3538,15 +3614,39 @@ $('#customer_id').change(
 
 function changeGrandTotal(due,paying){
     // alert(due);
+    var grand_total = parseFloat($("#grand-total").text());
+    var pay_id = $('#paid_by_id_select').val();
+    var sale_note = $('#sale_note').val();
+    var staff_note = $('#staff_note').val();
+    var payment_note = $('#payment_note').val();
     $('#pa').css('display','none');
     $('#da').css('display','block');
     $('#add-payment').modal('hide');
-    // $("#add-payment").append('<input type="hidden" name="paying_amount_array[]" value="'+paying+'"><input type="hidden" name="pay_by_id_array[]">');
+    $('.paying_amount').val(0);
+    $('.paid_amount').val(due);
     $('#due-total').text(due);
+
+
+    addPaymentOptions(paying, pay_id, sale_note, staff_note, payment_note);
     // $("#grand-total").text(due);
 
 
 
+}
+
+function addPaymentOptions(amount,pay_id,sale_note,staff_note,payment_note){
+    $('#payment-options').css('display','block');
+    if(pay_id == 1){
+        var row = '<div class="col-sm-4 offset-8"><span class="totals-title">Cash</span><span id="item">'+amount+'</span></div>'
+    }else if(pay_id == 3){
+        var row = '<div class="col-sm-4 offset-8"><span class="totals-title">Card</span><span id="item">'+amount+'</span></div>'
+    }else if(pay_id == 4){
+        var row = '<div class="col-sm-4 offset-8"><span class="totals-title">Cheque</span><span id="item">'+amount+'</span></div>'
+    }else if(pay_id == 7){
+        var row = '<div class="col-sm-4 offset-8"><span class="totals-title">E-Transfer</span><span id="item">'+amount+'</span></div>'
+    }
+    $('#payment-options .row').append(row);
+    $(".payment-form").append('<input type="hidden" name="paying_amount_array[]" value="'+amount+'" id="payment_amount_array"><input type="hidden" id="paid_by_id_array" name="paid_by_id_array[]" value="'+pay_id+'"><input type="hidden" name="sale_note_array[]" value="'+sale_note+'" /><input type="hidden" name="staff_note_array[]" value="'+staff_note+'" /><input type="hidden" name="payment_note_array[]" value="'+payment_note+'" />');
 }
 
 function custForm()
@@ -3592,6 +3692,7 @@ $('.paying_amount').keyup(function(){
     var paid = $('.paid_amount').val();
     if(parseFloat(paying) < parseFloat(paid))
     {
+
         $('.chnagelbl').html('Due :');
         $('#submit-btn').prop("type","button");
         $('#pay_anyway').attr("onclick","changeGrandTotal("+(parseFloat(paid)-parseFloat(paying))+","+parseFloat(paying)+")");
