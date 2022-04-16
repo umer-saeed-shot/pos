@@ -22,7 +22,7 @@
                                             <label><?php echo e(trans('file.Warehouse')); ?> *</label>
                                             <select required name="warehouse_id" class="selectpicker form-control" data-live-search="true" data-live-search-style="begins" title="Select store...">
                                                 <?php $__currentLoopData = $lims_warehouse_list; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $warehouse): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
-                                                <option value="<?php echo e($warehouse->id); ?>"><?php echo e($warehouse->name); ?></option>
+                                                <option value="<?php echo e($warehouse->id); ?>" <?php if($warehouse->id == auth()->user()->warehouse_id): ?> selected <?php endif; ?>><?php echo e($warehouse->name); ?></option>
                                                 <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
                                             </select>
                                         </div>
@@ -523,7 +523,7 @@ function productSearch(data) {
                 cols += '<input type="hidden" class="purchase-unit" name="purchase_unit[]" value="' + temp_unit_name[0] + '"/>';
                 cols += '<input type="hidden" class="net_unit_cost" name="net_unit_cost[]" />';
                 cols += '<input type="hidden" class="discount-value" name="discount[]" />';
-                cols += '<input type="hidden" class="tax-rate" name="tax_rate[]" value="' + data[3] + '"/>';
+                cols += '<input type="hidden" class="tax-rate" name="tax_rate[]" value="0"/>';
                 cols += '<input type="hidden" class="tax-value" name="tax[]" />';
                 cols += '<input type="hidden" class="subtotal-value" name="subtotal[]" />';
 
@@ -532,9 +532,9 @@ function productSearch(data) {
 
                 product_cost.push(parseFloat(data[2]));
                 product_discount.push('0.00');
-                tax_rate.push(parseFloat(data[3]));
-                tax_name.push(data[4]);
-                tax_method.push(data[5]);
+                tax_rate.push(0);
+                tax_name.push('No Tax');
+                tax_method.push(null);
                 unit_name.push(data[6]);
                 unit_operator.push(data[7]);
                 unit_operation_value.push(data[8]);

@@ -775,15 +775,32 @@
                         <div class="modal-body">
                             <div class="row">
                                 <div class="col-md-3">
+                                    <input type="text" name="name" id="misc_name" class="form-control"  placeholder="Product Name" >
+                                </div>
+                                <div class="col-md-4">
+                                    <select name="category_id" id="misc_category_id" class="form-control">
+                                        <option value="null">Select Category</option>
+                                        @foreach ($categories as $category)
+                                            <option value="{{ $category->id }}">{{ $category->name }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                                <div class="col-md-3">
+                                    <input type="text" name="cost" id="misc_cost" class="form-control" step="0.01" placeholder="Cost" >
+                                </div>
+                            </div>
+                            <br>
+                            <div class="row">
+                                <div class="col-md-2">
                                     <input type="text" name="price" id="misc_price" class="form-control" step="0.01" placeholder="Price" >
                                 </div>
                                 x
-                                <div class="col-md-3">
+                                <div class="col-md-2">
                                     <input type="number" name="qty" id="misc_qty" class="form-control" placeholder="Quantity" value="1" >
                                 </div>
                                 =
                                 <div class="col-md-3">
-                                    <input type="text" name="total_price" id="misc_total_price" class="form-control" step="0.01" placeholder="Extended Price">
+                                    <input type="text" name="total_price" id="misc_total_price" class="form-control" step="0.01" placeholder="Overall Selling Price">
                                 </div>
                             </div>
                             <br>
@@ -827,13 +844,13 @@
                                     <div class="col-md-4" style="display: none">
                                         <div class="form-group">
                                             @if($lims_pos_setting_data)
-                                            <input type="hidden" name="warehouse_id_hidden" value="{{$lims_pos_setting_data->warehouse_id}}">
+                                            <input type="hidden" name="warehouse_id_hidden" value="{{auth()->user()->warehouse_id}}">
                                             @endif
 
                                          <select style="display:none;" required id="warehouse_id" name="warehouse_id" class=" form-control">
                                             <option value="choose">Choose warehouse</option>
                                                 @foreach($lims_warehouse_list as $warehouse)
-                                                <option value="{{$warehouse->id}}">{{$warehouse->name}}</option>
+                                                <option value="{{$warehouse->id}}" @if(auth()->user()->warehouse_id == $warehouse->id) selected @endif>{{$warehouse->name}}</option>
                                                 @endforeach
                                             </select>
                                         </div>
@@ -1620,7 +1637,7 @@
                                                     <td onclick="getHeldProduct({{ $draft->id }})">{{$draft->grand_total}}</td>
                                                     <td>
                                                    <div class="btn-group">
-                                                    <a href="{{ route('sales.edit', $draft->id) }}" class="btn btn-success btn-sm" title="Edit" style=" padding: 0px 8px;  margin: 0px 5px; height: 31px;"><i class="dripicons-document-edit"></i></a>
+                                                    <a onclick="getHeldProduct({{ $draft->id }})" class="btn btn-success btn-sm" title="Edit" style=" padding: 0px 8px;  margin: 0px 5px; height: 31px;"><i class="dripicons-document-edit"></i></a>
 													{{ Form::open(['route' => ['sales.destroy', $draft->id], 'method' => 'DELETE'] ) }}
                                                             <button type="submit" class="btn btn-danger btn-sm" onclick="return confirmDelete()" title="Delete"><i class="dripicons-trash"></i></button>
                                                             {{ Form::close() }}
@@ -1867,10 +1884,18 @@
 <script>
 
 function addMiscItem(){
+    var name = $('#misc_name').val();
+    var cost = $('#misc_cost').val();
     var price = $('#misc_price').val();
     var qty = $("#misc_qty").val();
     var discount = $("#misc_discount").val();
     var tax = $("#misc_tax").val();
+    var category_id = $('#misc_category_id').val();
+
+    if(category_id == 'null'){
+        alert("Please select category");
+        return;
+    }
     if(tax == ""){
         tax = 0
     }
@@ -1883,13 +1908,13 @@ function addMiscItem(){
     $.ajax({
         type: "POST",
         url: "sales/add-misc-item",
-        data: {_token:"{{ csrf_token() }}",price:price,qty:qty,discount:discount,tax:tax,total_price:total_price},
+        data: {_token:"{{ csrf_token() }}",price:price,qty:qty,discount:discount,tax:tax,total_price:total_price,name:name,cost:cost,category_id:category_id},
         success: function (response) {
             if(Array.isArray(response) ){
                 $('#add-misc-item').modal('hide');
                 addNewProduct(response)
             }else{
-                alert("Error 500 !");
+                console.log(response);
             }
         }
     });
@@ -2169,7 +2194,35 @@ $('#misc_qty').on('input',function(e){
     function getHeldProduct(sale_id){
         $.get('sales/getheldproduct/' + sale_id, function(data) {
 
-            $.each(data, function(index,array) {
+
+            var uid = Math.random().toString(16).slice(2);
+            var sale = data['sale'];
+            var row = '';
+            if(sale['cash_payment'] !== null){
+                var row = row + '<div class="col-sm-4 offset-8" id="'+uid+'"><span class="totals-title">Cash</span><span id="item" class="col-2">'+sale['cash_payment']+'</span><button type="button" style="margin-left:2%" onclick="removeDue(this)" class="remove-due btn btn-danger btn-sm col-2"><i class="dripicons-cross"></i></button></div>'
+                $(".payment-form").append('<input type="hidden" name="paying_amount_array[]" value="'+sale['cash_payment']+'" id="payment_amount_array" class="'+uid+'"><input type="hidden" id="paid_by_id_array" name="paid_by_id_array[]" value="1" class="'+uid+'"><input type="hidden" id="sale_note_array" name="sale_note_array[]" value="null" class="'+uid+'"/><input type="hidden" name="staff_note_array[]" value="null" id="staff_note_array" class="'+uid+'" /><input type="hidden" name="payment_note_array[]" value="null" id="payment_note_array"  class="'+uid+'"/>');
+
+            }if(sale['card_payment'] !== null){
+                var row = row + '<div class="col-sm-4 offset-8" id="'+uid+'"><span class="totals-title">Card</span><span id="item" class="col-2">'+sale['card_payment']+'</span><button type="button" style="margin-left:2%" onclick="removeDue(this)" class="remove-due col-2 btn btn-danger btn-sm"><i class="dripicons-cross"></i></button></div>'
+                $(".payment-form").append('<input type="hidden" name="paying_amount_array[]" value="'+sale['card_payment']+'" id="payment_amount_array" class="'+uid+'"><input type="hidden" id="paid_by_id_array" name="paid_by_id_array[]" value="3" class="'+uid+'"><input type="hidden" id="sale_note_array" name="sale_note_array[]" value="null" class="'+uid+'"/><input type="hidden" name="staff_note_array[]" value="null" id="staff_note_array" class="'+uid+'" /><input type="hidden" name="payment_note_array[]" value="null" id="payment_note_array"  class="'+uid+'"/>');
+                $('.external-me').prop('checked',true);
+                alert('External Card Reader Detected!. Delete the card dues and pay card payment at last if you want to make card payment. Thanks');
+
+            }if(sale['cheque_payment'] !== null){
+                var row = row + '<div class="col-sm-4 offset-8" id="'+uid+'"><span class="totals-title">Cheque</span><span id="item" class="col-2">'+sale['cheque_payment']+'</span><button type="button" style="margin-left:2%" onclick="removeDue(this)" class="remove-due col-2 btn btn-danger btn-sm"><i class="dripicons-cross"></i></button></div>'
+                $(".payment-form").append('<input type="hidden" name="paying_amount_array[]" value="'+sale['cheque_payment']+'" id="payment_amount_array" class="'+uid+'"><input type="hidden" id="paid_by_id_array" name="paid_by_id_array[]" value="4" class="'+uid+'"><input type="hidden" id="sale_note_array" name="sale_note_array[]" value="null" class="'+uid+'"/><input type="hidden" name="staff_note_array[]" value="null" id="staff_note_array" class="'+uid+'" /><input type="hidden" name="payment_note_array[]" value="null" id="payment_note_array"  class="'+uid+'"/>');
+                $('#cheque_no').val(sale['cheque_no']);
+            }if(sale['e_transfer_payment'] !== null){
+                var row = row + '<div class="col-sm-4 offset-8" id="'+uid+'"><span class="totals-title">E-Transfer</span><span id="item" class="col-2">'+sale['e_transfer_payment']+'</span><button type="button" style="margin-left:2%" onclick="removeDue(this)" class="remove-due col-2 btn btn-danger btn-sm"><i class="dripicons-cross"></i></button></div>'
+                $(".payment-form").append('<input type="hidden" name="paying_amount_array[]" value="'+sale['e_transfer_payment']+'" id="payment_amount_array" class="'+uid+'"><input type="hidden" id="paid_by_id_array" name="paid_by_id_array[]" value="7" class="'+uid+'"><input type="hidden" id="sale_note_array" name="sale_note_array[]" value="null" class="'+uid+'"/><input type="hidden" name="staff_note_array[]" value="null" id="staff_note_array" class="'+uid+'" /><input type="hidden" name="payment_note_array[]" value="null" id="payment_note_array"  class="'+uid+'"/>');
+            }
+
+            if(row !== ''){
+                $('#payment-options').css('display','block');
+            }
+            $('#payment-options .row').html(row);
+
+            $.each(data['products'], function(index,array) {
                 // console.log(array);
                 addNewProduct(array);
             });
@@ -2477,6 +2530,26 @@ $('#misc_qty').on('input',function(e){
             }
         }
     });
+    //Delete partial payment
+
+   function removeDue(object){
+
+        var unique_id = $(object).closest('div').attr('id');
+        $('#'+unique_id).remove();
+        $('.'+unique_id).remove();
+
+        var grand_total = parseFloat($('#grand-total').text());
+        var due_total = 0;
+        $("input[name='paying_amount_array[]']").each(function(){
+            due_total += parseFloat($(this).val());
+        });
+
+        $('#due-total').text(grand_total - due_total);
+
+
+        calculateGrandTotal();
+   }
+
     //Delete product
     $("table.order-list tbody").on("click", ".ibtnDel", function(event) {
         var audio = $("#mysoundclip2")[0];
@@ -2492,6 +2565,53 @@ $('#misc_qty').on('input',function(e){
         unit_operation_value.splice(rowindex, 1);
         $(this).closest("tr").remove();
         calculateTotal();
+    });
+
+    //tax to zero
+    $("table.order-list tbody").on("click", ".zero-tax", function(event) {
+
+        var audio = $("#mysoundclip2")[0];
+        //audio.play();
+        rowindex = $(this).closest('tr').index();
+        qty = $(this).closest('tr').find('.qty').val();
+
+        tax_rate[rowindex] = 0;
+        tax_name[rowindex] = null;
+        tax_method[rowindex] = null;
+        var tax;
+        $(".tax-value").each(function(index) {
+            if(index == rowindex){
+                tax = $(this).val();
+                $(this).val(0);
+
+
+            }
+
+        });
+
+        $(".tax-rate").each(function(index) {
+            if(index == rowindex){
+
+                $(this).val(0);
+
+
+            }
+
+        });
+
+        $(".sub-total").each(function(i) {
+            if(i == rowindex){
+                var total = parseFloat($(this).text()) - parseFloat(tax);
+
+                $(this).text(total.toFixed(2))
+
+            }
+
+        });
+
+        $('table.order-list tbody tr:nth-child(' + (rowindex + 1) + ')').find('.product-tax').text(tax_rate[rowindex].toFixed(2));
+
+        calculateRowProductData(qty);
     });
 
     //Edit product
@@ -2577,10 +2697,13 @@ $('#misc_qty').on('input',function(e){
         {
         var audio = $("#mysoundclip2")[0];
         audio.play();
-        if($('#payment_amount_array').length == 0){
+        if($("input[name='paying_amount_array[]']").length == 0){
 
             $('input[name="paying_amount"]').val($("#grand-total").text());
             $('input[name="paid_amount"]').val($("#grand-total").text());
+        }else{
+            $('input[name="paying_amount"]').val($("#due-total").text());
+            $('input[name="paid_amount"]').val($("#due-total").text());
         }
         $('.qc').data('initial', 1);
         }
@@ -2628,12 +2751,15 @@ $('#misc_qty').on('input',function(e){
                     {
                     if($( 'input[name="cardnumber"]' ).val() != "")
                         $('.payment-form').submit();
-                        else
-                        alert('Enter Card Number');
+                        else{
+                            alert('Enter Card Number');
+                            return;
+                        }
                     }
                     else
                     {
                         alert("the card number is invalid");
+                        return;
                     }
                 }
 
@@ -2648,6 +2774,7 @@ $('#misc_qty').on('input',function(e){
             {
                 if($('#cheque_no').val() == ""){
                     alert("Cheque number cannot be empty");
+                    return;
                 }else{
 
                     $('.payment-form').submit();
@@ -2661,7 +2788,7 @@ $('#misc_qty').on('input',function(e){
         }else{
 
             var submit = true;
-            $(".payment-form").append('<input type="hidden" name="paying_amount_array[]" value="'+$('.paying_amount').val()+'" id="payment_amount_array"><input type="hidden" id="paid_by_id_array" name="paid_by_id_array[]" value="'+$('#paid_by_id_select').val()+'"><input type="hidden" name="sale_note_array[]" value="'+$('#sale_note').val()+'" /><input type="hidden" name="staff_note_array[]" value="'+$('#staff_note').val()+'" /><input type="hidden" name="payment_note_array[]" value="'+$('#payment_note').val()+'" />');
+
 
             var paid_ids = [];
 
@@ -2678,6 +2805,7 @@ $('#misc_qty').on('input',function(e){
                     if($('#cheque_no').val() == ""){
                         alert("Cheque number cannot be empty!");
                         submit = false;
+
 
                     }
 
@@ -2705,6 +2833,9 @@ $('#misc_qty').on('input',function(e){
             });
 
         if(submit == true){
+
+            $(".payment-form").append('<input type="hidden" name="paying_amount_array[]" value="'+$('.paying_amount').val()+'" id="payment_amount_array"><input type="hidden" id="paid_by_id_array" name="paid_by_id_array[]" value="'+$('#paid_by_id_select').val()+'"><input type="hidden" name="sale_note_array[]" value="'+$('#sale_note').val()+'" /><input type="hidden" name="staff_note_array[]" value="'+$('#staff_note').val()+'" /><input type="hidden" name="payment_note_array[]" value="'+$('#payment_note').val()+'" />');
+
             $('.payment-form').submit();
         }
 
@@ -2944,10 +3075,17 @@ $('#misc_qty').on('input',function(e){
         var rowCount = $('#myTable tr').length;
         //alert(rowCount);
         var newRow = $("<tr>");
+
         if(data.length == 12){
             var held_qty = data[11];
+
+
         }else{
             var held_qty = 1;
+            if(data[12] == 0){
+                alert("Low Stock! Please add stock first");
+                return;
+            }
         }
         var cols = '';
         var a = data;
@@ -2957,8 +3095,8 @@ $('#misc_qty').on('input',function(e){
         cols += '<td class="col-sm-2 product-price"></td>';
         cols += '<td class="col-sm-2 product-tax"></td>';
         cols += '<td class="col-sm-2"><div class="input-group"><span class="input-group-btn"><button type="button" class="btn btn-default minus"><span class="dripicons-minus"></span></button></span><input type="text" name="qty[]" class="form-control qty numkey input-number" value="'+held_qty+'" step="any" required><span class="input-group-btn"><button type="button" class="btn btn-default plus"><span class="dripicons-plus"></span></button></span></div></td>';
-        cols += '<td class="col-sm-2 sub-total"></td>';
-        cols += '<td class="col-sm-1"><button type="button" class="ibtnDel btn btn-danger btn-sm"><i class="dripicons-cross"></i></button></td>';
+        cols += '<td class="col-sm-1 sub-total"></td>';
+        cols += '<td class="col-sm-2"><button type="button" class="ibtnDel btn btn-danger btn-sm"><i class="dripicons-cross"></i></button><button type="button" class="zero-tax btn btn-danger btn-sm" style="margin-left:2px;">Remove Tax</button></td>';
         cols += '<input type="hidden" class="product-code" name="product_code[]" value="' + data[1] + '"/>';
         cols += '<input type="hidden" class="product-id" name="product_id[]" value="' + data[9] + '"/>';
         cols += '<input type="hidden" class="sale-unit" name="sale_unit[]" value="' + temp_unit_name[0] + '"/>';
@@ -3110,14 +3248,9 @@ $('#misc_qty').on('input',function(e){
         pos = product_code.indexOf(row_product_code);
 
         $('table.order-list tbody tr:nth-child(' + (rowindex + 1) + ')').find('.in-stock').text(product_qty[pos]);
-        if (product_type[pos] == 'standard') {
-            var operator = unit_operator[rowindex].split(',');
-            var operation_value = unit_operation_value[rowindex].split(',');
-            if (operator[0] == '*')
-                total_qty = sale_qty * operation_value[0];
-            else if (operator[0] == '/')
-                total_qty = sale_qty / operation_value[0];
-            if (total_qty > parseFloat(product_qty[pos])) {
+
+
+            if (sale_qty > parseFloat(product_qty[pos])) {
                 alert('Quantity exceeds stock quantity!');
                 if (flag) {
                     sale_qty = sale_qty.substring(0, sale_qty.length - 1);
@@ -3128,24 +3261,7 @@ $('#misc_qty').on('input',function(e){
                     return;
                 }
             }
-        } else if (product_type[pos] == 'combo') {
-            child_id = product_list[pos].split(',');
-            child_qty = qty_list[pos].split(',');
-            $(child_id).each(function(index) {
-                var position = product_id.indexOf(parseInt(child_id[index]));
-                if (parseFloat(sale_qty * child_qty[index]) > product_qty[position]) {
-                    alert('Quantity exceeds stock quantity!');
-                    if (flag) {
-                        sale_qty = sale_qty.substring(0, sale_qty.length - 1);
-                        $('table.order-list tbody tr:nth-child(' + (rowindex + 1) + ')').find('.qty').val(sale_qty);
-                    } else {
-                        edit();
-                        flag = true;
-                        return false;
-                    }
-                }
-            });
-        }
+
 
         if (!flag) {
             $('#editModal').modal('hide');
@@ -3298,7 +3414,32 @@ $('#misc_qty').on('input',function(e){
 
         item = ++item + '(' + total_qty + ')';
         order_tax = (subtotal - order_discount) * (order_tax / 100);
-        var grand_total = (subtotal + order_tax + shipping_cost) - order_discount;
+
+        if($("input[name='paying_amount_array[]']").length > 0){
+
+            var due_total = 0;
+            $("input[name='paying_amount_array[]']").each(function(){
+                due_total -= parseFloat($(this).val());
+            });
+
+
+            var grand_total = (due_total + subtotal + order_tax + shipping_cost) - order_discount;
+
+            if($("input[name='product_code[]']").length > 0){
+                $('#pa').css('display','none');
+                $('#da').css('display','block');
+                var grand_total = (subtotal + order_tax + shipping_cost) - order_discount;
+                var due = grand_total + due_total;
+                $('#due-total').text(due);
+            }else{
+                $('#pa').css('display','block');
+                $('#da').css('display','none');
+            }
+
+        }else{
+
+            var grand_total = (subtotal + order_tax + shipping_cost) - order_discount;
+        }
         $('input[name="grand_total"]').val(grand_total.toFixed(2));
 
         couponDiscount();
@@ -3313,9 +3454,9 @@ $('#misc_qty').on('input',function(e){
         $('#tax').text(order_tax.toFixed(2));
         $('input[name="order_tax"]').val(order_tax.toFixed(2));
         $('#shipping-cost').text(shipping_cost.toFixed(2));
-        $('#pa').css('display','block');
-                            $('#da').css('display','none');
+
         $('#grand-total').text(grand_total.toFixed(2));
+
         $('input[name="grand_total"]').val(grand_total.toFixed(2));
     }
 
@@ -3425,6 +3566,14 @@ $('.external-me').click(function() {
             $('table.order-list tbody tr:last').remove();
             rownumber--;
         }
+        $('#payment-options').css('display','none');
+        $('#payment-options .row').html(null);
+        $('#paid_by_id_array').remove();
+        $('#payment_amount_array').remove();
+        $('#payment_note_array').remove();
+        $('#staff_note_array').remove();
+        $('#sale_note_array').remove();
+
         $('input[name="shipping_cost"]').val('');
         $('input[name="order_discount"]').val('');
         $('select[name="order_tax_rate_select"]').val(0);
@@ -3616,15 +3765,31 @@ function changeGrandTotal(due,paying){
     // alert(due);
     var grand_total = parseFloat($("#grand-total").text());
     var pay_id = $('#paid_by_id_select').val();
+
+    if(pay_id == 3){
+        if(($('#paid_by_id_array').length == 0 || due > 0) && !$('.external-me').prop('checked') ){
+            alert("Partially card payment should be done at last!");
+            return;
+        }
+    }else if(pay_id == 4){
+        if($('#cheque_no').val() == ""){
+            alert("Please Enter Cheque Number Before Proceeding Further!");
+            return;
+        }
+    }
+
     var sale_note = $('#sale_note').val();
     var staff_note = $('#staff_note').val();
     var payment_note = $('#payment_note').val();
     $('#pa').css('display','none');
     $('#da').css('display','block');
     $('#add-payment').modal('hide');
-    $('.paying_amount').val(0);
-    $('.paid_amount').val(due);
-    $('#due-total').text(due);
+    $('.paying_amount').val(due.toFixed(2));
+    $('.paid_amount').val(due.toFixed(2));
+    $('#due-total').text(due.toFixed(2));
+
+    $('#submit-btn').text("Submit");
+    $('#pay_anyway').css('display','none');
 
 
     addPaymentOptions(paying, pay_id, sale_note, staff_note, payment_note);
@@ -3635,18 +3800,20 @@ function changeGrandTotal(due,paying){
 }
 
 function addPaymentOptions(amount,pay_id,sale_note,staff_note,payment_note){
+    var uid = Math.random().toString(16).slice(2);
+
     $('#payment-options').css('display','block');
     if(pay_id == 1){
-        var row = '<div class="col-sm-4 offset-8"><span class="totals-title">Cash</span><span id="item">'+amount+'</span></div>'
+        var row = '<div class="col-sm-4 offset-8" id="'+uid+'"><span class="totals-title">Cash</span><span id="item" class="col-2">'+amount+'</span><button type="button" style="margin-left:2%" onclick="removeDue(this)" class="remove-due btn btn-danger btn-sm col-2"><i class="dripicons-cross"></i></button></div>'
     }else if(pay_id == 3){
-        var row = '<div class="col-sm-4 offset-8"><span class="totals-title">Card</span><span id="item">'+amount+'</span></div>'
+        var row = '<div class="col-sm-4 offset-8" id="'+uid+'"><span class="totals-title">Card</span><span id="item" class="col-2">'+amount+'</span><button type="button" style="margin-left:2%" onclick="removeDue(this)" class="remove-due col-2 btn btn-danger btn-sm"><i class="dripicons-cross"></i></button></div>'
     }else if(pay_id == 4){
-        var row = '<div class="col-sm-4 offset-8"><span class="totals-title">Cheque</span><span id="item">'+amount+'</span></div>'
+        var row = '<div class="col-sm-4 offset-8" id="'+uid+'"><span class="totals-title">Cheque</span><span id="item" class="col-2">'+amount+'</span><button type="button" style="margin-left:2%" onclick="removeDue(this)" class="remove-due col-2 btn btn-danger btn-sm"><i class="dripicons-cross"></i></button></div>'
     }else if(pay_id == 7){
-        var row = '<div class="col-sm-4 offset-8"><span class="totals-title">E-Transfer</span><span id="item">'+amount+'</span></div>'
+        var row = '<div class="col-sm-4 offset-8" id="'+uid+'"><span class="totals-title">E-Transfer</span><span id="item" class="col-2">'+amount+'</span><button type="button" style="margin-left:2%" onclick="removeDue(this)" class="col-2 remove-due btn btn-danger btn-sm"><i class="dripicons-cross"></i></button></div>'
     }
     $('#payment-options .row').append(row);
-    $(".payment-form").append('<input type="hidden" name="paying_amount_array[]" value="'+amount+'" id="payment_amount_array"><input type="hidden" id="paid_by_id_array" name="paid_by_id_array[]" value="'+pay_id+'"><input type="hidden" name="sale_note_array[]" value="'+sale_note+'" /><input type="hidden" name="staff_note_array[]" value="'+staff_note+'" /><input type="hidden" name="payment_note_array[]" value="'+payment_note+'" />');
+    $(".payment-form").append('<input type="hidden" name="paying_amount_array[]" value="'+amount+'" id="payment_amount_array" class="'+uid+'"><input type="hidden" id="paid_by_id_array" name="paid_by_id_array[]" value="'+pay_id+'" class="'+uid+'"><input type="hidden" id="sale_note_array" name="sale_note_array[]" value="'+sale_note+'" class="'+uid+'"/><input type="hidden" name="staff_note_array[]" value="'+staff_note+'" id="staff_note_array" class="'+uid+'" /><input type="hidden" name="payment_note_array[]" value="'+payment_note+'" id="payment_note_array"  class="'+uid+'"/>');
 }
 
 function custForm()

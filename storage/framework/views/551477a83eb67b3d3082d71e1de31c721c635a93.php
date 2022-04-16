@@ -88,7 +88,28 @@
 			<td colspan="5" style="border: 1px solid #000; padding: 5px"><strong>Due</strong></td>
 			<td style="border: 1px solid #000; padding: 5px"><?php echo e(number_format((float)($grand_total - $paid_amount), 2, '.', '')); ?></td>
 		</tr>
+        <tr>
+			<td colspan="6" style="border: 1px solid #000; padding: 5px;text-align:center"><strong>Payment Breakdown:</strong></td>
+
+		</tr>
+        <tr>
+			<td colspan="5" style="border: 1px solid #000; padding: 5px"><strong>Cash Amount</strong></td>
+			<td style="border: 1px solid #000; padding: 5px"><?php echo e(number_format((float)($cash_amount), 2, '.', '')); ?></td>
+		</tr>
+        <tr>
+			<td colspan="5" style="border: 1px solid #000; padding: 5px"><strong>Card Amount</strong></td>
+			<td style="border: 1px solid #000; padding: 5px"><?php echo e(number_format((float)($card_amount), 2, '.', '')); ?></td>
+		</tr>
+        <tr>
+			<td colspan="5" style="border: 1px solid #000; padding: 5px"><strong>Cheque Amount</strong></td>
+			<td style="border: 1px solid #000; padding: 5px"><?php echo e(number_format((float)($cheque_amount), 2, '.', '')); ?></td>
+		</tr>
+        <tr>
+			<td colspan="5" style="border: 1px solid #000; padding: 5px"><strong>E-Transfer Amount</strong></td>
+			<td style="border: 1px solid #000; padding: 5px"><?php echo e(number_format((float)($e_transfer_amount), 2, '.', '')); ?></td>
+		</tr>
 	</tbody>
 </table>
 <p>Thank you for visiting! Please consider leaving a review on Google Maps, and clicking the "Check-in" button on YELP!</p>
-<p>Thank You</p><?php /**PATH C:\xampp\htdocs\POS\resources\views/mail/saleheld_details.blade.php ENDPATH**/ ?>
+<p>Thank You</p>
+<?php /**PATH C:\xampp\htdocs\POS\resources\views/mail/saleheld_details.blade.php ENDPATH**/ ?>

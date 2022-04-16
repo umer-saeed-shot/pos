@@ -108,6 +108,11 @@
                       ->where([
                         ['permissions.name', 'category'],
                         ['role_id', $role->id] ])->first();
+                  $type_permission_active = DB::table('permissions')
+                      ->join('role_has_permissions', 'permissions.id', '=', 'role_has_permissions.permission_id')
+                      ->where([
+                        ['permissions.name', 'type'],
+                        ['role_id', $role->id] ])->first();
                   $index_permission = DB::table('permissions')->where('name', 'products-index')->first();
                   $index_permission_active = DB::table('role_has_permissions')->where([
                       ['permission_id', $index_permission->id],
@@ -271,12 +276,15 @@
               ?>
 
 
-              @if($category_permission_active || $index_permission_active || $print_barcode_active || $stock_count_active || $adjustment_active)
+              @if($category_permission_active || $index_permission_active || $print_barcode_active || $stock_count_active || $adjustment_active || $type_permission_active)
               <li><a href="#product" aria-expanded="false" data-toggle="collapse"> <i class="dripicons-list"></i><span>{{__('file.product')}}</span><span></a>
                 <ul id="product" class="collapse list-unstyled ">
 
                   @if($category_permission_active)
                   <li id="category-menu"><a href="{{route('category.index')}}">{{__('file.category')}}</a></li>
+                  @endif
+                  @if($category_permission_active)
+                  <li id="type-menu"><a href="{{route('type.index')}}">Type</a></li>
                   @endif
                   @if($index_permission_active)
                   <li id="product-list-menu"><a href="{{route('products.index')}}">{{__('file.product_list')}}</a></li>
@@ -348,7 +356,7 @@
                   <li id="sale-list-menu"><a href="{{route('sales.index')}}">{{trans('file.Sale List')}}</a></li>
                     @if($sale_add_permission_active)
                     <!--<li><a href="{{route('sale.pos')}}">POS</a></li>-->
-					<li id="sale-create-menu"><a href="{{url('sales/sale-hold')}}">Held Receipts</a></li>
+					<li id="sale-held-list"><a href="{{url('sales/sale-hold')}}">Held Receipts</a></li>
                     <li id="sale-create-menu"><a href="{{route('sales.create')}}">{{trans('file.Add Sale')}}</a></li>
                     <li id="sale-import-menu"><a href="{{url('sales/sale_by_csv')}}">{{trans('file.Import Sale By CSV')}}</a></li>
                     @endif

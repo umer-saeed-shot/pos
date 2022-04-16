@@ -163,9 +163,9 @@
                   <div class="col-4 float-right">
                     <select name="type" id="type" class="cash_flow_form-control" onchange="cashFlowFilter()">
                         <option value="0">Search Type Wise</option>
-                        <option value="digital">Digital</option>
-                        <option value="standard">Standard</option>
-                        <option value="combo">Combo</option>
+                        <?php $__currentLoopData = $types; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $type): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                            <option value="<?php echo e($type->id); ?>"><?php echo e($type->name); ?></option>
+                        <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
 
                     </select>
                   </div>
@@ -209,9 +209,9 @@
                   <div class="col-4 float-right">
                     <select name="type" id="pie_chart_type" class="form-control" onchange="pieChartFilter()">
                         <option value="0">Search Type Wise</option>
-                        <option value="digital">Digital</option>
-                        <option value="standard">Standard</option>
-                        <option value="combo">Combo</option>
+                        <?php $__currentLoopData = $types; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $type): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                        <option value="<?php echo e($type->id); ?>"><?php echo e($type->name); ?></option>
+                        <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
 
                     </select>
                   </div>

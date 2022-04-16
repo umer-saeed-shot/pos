@@ -44,6 +44,12 @@ Route::group(['middleware' => ['auth', 'active']], function() {
 	Route::post('category/category-data', 'CategoryController@categoryData');
 	Route::resource('category', 'CategoryController');
 
+
+    Route::post('type/import', 'TypeController@import')->name('type.import');
+	Route::post('type/deletebyselection', 'TypeController@deleteBySelection');
+	Route::post('type/type-data', 'TypeController@typeData');
+	Route::resource('type', 'TypeController');
+
 	Route::post('importbrand', 'BrandController@importBrand')->name('brand.import');
 	Route::post('brand/deletebyselection', 'BrandController@deleteBySelection');
 	Route::get('brand/lims_brand_search', 'BrandController@limsBrandSearch')->name('brand.search');

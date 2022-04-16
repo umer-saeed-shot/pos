@@ -53,6 +53,7 @@
                 <tr>
                     <th class="not-exported"></th>
                     <th>{{trans('file.Product Name')}}</th>
+                    <th>Category Name</th>
                     <th>{{trans('file.Sold Amount')}}</th>
                     <th>{{trans('file.Sold Qty')}}</th>
                     <th>{{trans('file.In Stock')}}</th>
@@ -64,6 +65,7 @@
                 <tr>
                     <td>{{$key}}</td>
                     <td>{{$product_name[$key]}}</td>
+                    <td>{{$product_category[$key]}}</td>
                     <?php
                         if($warehouse_id == 0){
                             if($variant_id[$key]) {
@@ -139,6 +141,7 @@
             <tfoot>
                 <th></th>
                 <th>Total</th>
+                <th></th>
                 <th>0.00</th>
                 <th>0</th>
                 <th>0</th>

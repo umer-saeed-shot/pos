@@ -108,6 +108,11 @@
                       ->where([
                         ['permissions.name', 'category'],
                         ['role_id', $role->id] ])->first();
+                  $type_permission_active = DB::table('permissions')
+                      ->join('role_has_permissions', 'permissions.id', '=', 'role_has_permissions.permission_id')
+                      ->where([
+                        ['permissions.name', 'type'],
+                        ['role_id', $role->id] ])->first();
                   $index_permission = DB::table('permissions')->where('name', 'products-index')->first();
                   $index_permission_active = DB::table('role_has_permissions')->where([
                       ['permission_id', $index_permission->id],
@@ -271,12 +276,15 @@
               ?>
 
 
-              <?php if($category_permission_active || $index_permission_active || $print_barcode_active || $stock_count_active || $adjustment_active): ?>
+              <?php if($category_permission_active || $index_permission_active || $print_barcode_active || $stock_count_active || $adjustment_active || $type_permission_active): ?>
               <li><a href="#product" aria-expanded="false" data-toggle="collapse"> <i class="dripicons-list"></i><span><?php echo e(__('file.product')); ?></span><span></a>
                 <ul id="product" class="collapse list-unstyled ">
 
                   <?php if($category_permission_active): ?>
                   <li id="category-menu"><a href="<?php echo e(route('category.index')); ?>"><?php echo e(__('file.category')); ?></a></li>
+                  <?php endif; ?>
+                  <?php if($category_permission_active): ?>
+                  <li id="type-menu"><a href="<?php echo e(route('type.index')); ?>">Type</a></li>
                   <?php endif; ?>
                   <?php if($index_permission_active): ?>
                   <li id="product-list-menu"><a href="<?php echo e(route('products.index')); ?>"><?php echo e(__('file.product_list')); ?></a></li>
@@ -348,7 +356,7 @@
                   <li id="sale-list-menu"><a href="<?php echo e(route('sales.index')); ?>"><?php echo e(trans('file.Sale List')); ?></a></li>
                     <?php if($sale_add_permission_active): ?>
                     <!--<li><a href="<?php echo e(route('sale.pos')); ?>">POS</a></li>-->
-					<li id="sale-create-menu"><a href="<?php echo e(url('sales/sale-hold')); ?>">Held Receipts</a></li>
+					<li id="sale-held-list"><a href="<?php echo e(url('sales/sale-hold')); ?>">Held Receipts</a></li>
                     <li id="sale-create-menu"><a href="<?php echo e(route('sales.create')); ?>"><?php echo e(trans('file.Add Sale')); ?></a></li>
                     <li id="sale-import-menu"><a href="<?php echo e(url('sales/sale_by_csv')); ?>"><?php echo e(trans('file.Import Sale By CSV')); ?></a></li>
                     <?php endif; ?>

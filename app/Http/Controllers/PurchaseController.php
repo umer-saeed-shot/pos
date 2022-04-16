@@ -243,6 +243,7 @@ class PurchaseController extends Controller
             $lims_tax_list = Tax::where('is_active', true)->get();
             $lims_product_list_without_variant = $this->productWithoutVariantActive();
             $lims_product_list_with_variant = $this->productWithVariantActive();
+
 //echo '<pre>'; print_r($lims_product_list_with_variant); exit;
             return view('purchase.create', compact('lims_supplier_list', 'lims_warehouse_list', 'lims_tax_list', 'lims_product_list_without_variant', 'lims_product_list_with_variant'));
         }
@@ -267,7 +268,7 @@ class PurchaseController extends Controller
 
     public function productWithoutVariantActive()
     {
-        return Product::ActiveStandard()->select('id', 'name', 'code')
+        return Product::select('id', 'name', 'code')
                 ->where('is_active',true)
                 ->whereNull('is_variant')->get();
     }
@@ -275,7 +276,6 @@ class PurchaseController extends Controller
     public function productWithVariantActive()
     {
         return Product::join('product_variants', 'products.id', 'product_variants.product_id')
-                ->ActiveStandard()
                 ->where('products.is_active',true)
                 ->whereNotNull('is_variant')
                 ->select('products.id', 'products.name', 'product_variants.item_code')
@@ -955,6 +955,38 @@ class PurchaseController extends Controller
         elseif ($balance == 0)
             $lims_purchase_data->payment_status = 2;
         $lims_purchase_data->save();
+        $lims_product_purchase_data = ProductPurchase::where('purchase_id', $request['id'])->get();
+
+        foreach ($lims_product_purchase_data as $product_purchase_data) {
+            $lims_purchase_unit_data = Unit::find($product_purchase_data->purchase_unit_id);
+            if ($lims_purchase_unit_data->operator == '*')
+                $recieved_qty = $product_purchase_data->recieved * $lims_purchase_unit_data->operation_value;
+            else
+                $recieved_qty = $product_purchase_data->recieved / $lims_purchase_unit_data->operation_value;
+
+            $lims_product_data = Product::find($product_purchase_data->product_id);
+            if($product_purchase_data->variant_id) {
+                $lims_product_variant_data = ProductVariant::select('id', 'qty')->FindExactProduct($lims_product_data->id, $product_purchase_data->variant_id)->first();
+                $lims_product_warehouse_data = Product_Warehouse::FindProductWithVariant($product_purchase_data->product_id, $product_purchase_data->variant_id, $lims_purchase_data->warehouse_id)
+                    ->first();
+                $lims_product_variant_data->qty -= $recieved_qty;
+                $lims_product_variant_data->save();
+            }
+            else {
+                $lims_product_warehouse_data = Product_Warehouse::FindProductWithoutVariant($product_purchase_data->product_id, $lims_purchase_data->warehouse_id)
+                    ->first();
+            }
+
+            $lims_product_data->qty -= $recieved_qty;
+            if($lims_product_warehouse_data !== null){
+
+                $lims_product_warehouse_data->qty -= $recieved_qty;
+                $lims_product_warehouse_data->save();
+            }
+
+            $lims_product_data->save();
+            $product_purchase_data->delete();
+        }
 
         if($lims_payment_data->paying_method == 'Credit Card'){
             $lims_payment_with_credit_card_data = PaymentWithCreditCard::where('payment_id', $request['id'])->first();

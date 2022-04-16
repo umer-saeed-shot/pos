@@ -13,7 +13,7 @@
                         <p class="italic"><small>{{trans('file.The field labels marked with * are required input fields')}}.</small></p>
                         <form id="product-form">
                             <div class="row">
-
+                                <input type="hidden" name="user_id" value="{{ auth()->user()->id }}">
                                 <div class="col-md-4">
                                     <div class="form-group">
                                         <label>{{trans('file.Product Name')}} *</strong> </label>
@@ -26,9 +26,13 @@
                                         <label>{{trans('file.Product Type')}} *</strong> </label>
                                         <div class="input-group">
                                             <select name="type" required class="form-control selectpicker" id="type">
-                                                <option value="standard">Standard</option>
-                                                <option value="combo">Combo</option>
-                                                <option value="digital">Digital</option>
+
+                                                <option>Select Type</option>
+                                                @foreach ($lims_type_list as $type)
+                                                    <option value="{{ $type->id }}">{{ $type->name }}</option>
+                                                @endforeach
+
+
                                             </select>
                                         </div>
                                     </div>

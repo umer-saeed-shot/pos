@@ -195,6 +195,10 @@
                     <th colspan="2">{{trans('file.grand total')}}</th>
                     <th style="text-align:right">{{number_format((float)$lims_sale_data->grand_total, 2, '.', '')}}</th>
                 </tr>
+                <tr>
+                    <th colspan="2">Dues</th>
+                    <th style="text-align:right">{{number_format((float)$lims_sale_data->grand_total - $lims_sale_data->paid_amount , 2, '.', '')}}</th>
+                </tr>
                 <!--
                 <tr>
                     @if($general_setting->currency_position == 'prefix')
@@ -207,6 +211,7 @@
         </table>
         <table>
             <tbody>
+                <h3>Payment Breakdown :</h3>
                 @foreach($lims_payment_data as $payment_data)
                 <tr style="background-color:#ddd;">
                     <td style="padding: 5px;width:30%">{{trans('file.Paid By')}}: {{$payment_data->paying_method}}</td>

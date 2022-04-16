@@ -11,7 +11,7 @@
                         <p class="italic"><small><?php echo e(trans('file.The field labels marked with * are required input fields')); ?>.</small></p>
                         <form id="product-form">
                             <div class="row">
-
+                                <input type="hidden" name="user_id" value="<?php echo e(auth()->user()->id); ?>">
                                 <div class="col-md-4">
                                     <div class="form-group">
                                         <label><?php echo e(trans('file.Product Name')); ?> *</strong> </label>
@@ -24,9 +24,13 @@
                                         <label><?php echo e(trans('file.Product Type')); ?> *</strong> </label>
                                         <div class="input-group">
                                             <select name="type" required class="form-control selectpicker" id="type">
-                                                <option value="standard">Standard</option>
-                                                <option value="combo">Combo</option>
-                                                <option value="digital">Digital</option>
+
+                                                <option>Select Type</option>
+                                                <?php $__currentLoopData = $lims_type_list; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $type): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                                                    <option value="<?php echo e($type->id); ?>"><?php echo e($type->name); ?></option>
+                                                <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
+
+
                                             </select>
                                         </div>
                                     </div>

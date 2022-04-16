@@ -199,6 +199,10 @@
                     <th colspan="2"><?php echo e(trans('file.grand total')); ?></th>
                     <th style="text-align:right"><?php echo e(number_format((float)$lims_sale_data->grand_total, 2, '.', '')); ?></th>
                 </tr>
+                <tr>
+                    <th colspan="2">Dues</th>
+                    <th style="text-align:right"><?php echo e(number_format((float)$lims_sale_data->grand_total - $lims_sale_data->paid_amount , 2, '.', '')); ?></th>
+                </tr>
                 <!--
                 <tr>
                     <?php if($general_setting->currency_position == 'prefix'): ?>
@@ -211,6 +215,7 @@
         </table>
         <table>
             <tbody>
+                <h3>Payment Breakdown :</h3>
                 <?php $__currentLoopData = $lims_payment_data; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $payment_data): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
                 <tr style="background-color:#ddd;">
                     <td style="padding: 5px;width:30%"><?php echo e(trans('file.Paid By')); ?>: <?php echo e($payment_data->paying_method); ?></td>

@@ -14,7 +14,7 @@
                         <form id="product-form">
                             <input type="hidden" name="id" value="{{$lims_product_data->id}}" />
                             <div class="row">
-                                
+
                                 <div class="col-md-4">
                                     <div class="form-group">
                                         <label>{{trans('file.Product Name')}} *</strong> </label>
@@ -27,9 +27,13 @@
                                         <label>{{trans('file.Product Type')}} *</strong> </label>
                                         <div class="input-group">
                                             <select name="type" required class="form-control selectpicker" id="type">
-                                                <option value="standard">Standard</option>
-                                                <option value="combo">Combo</option>
-                                                <option value="digital">Digital</option>
+                                                <option value="Choose Type">
+                                                    @foreach ($types as $type)
+                                                        <option value="{{ $type->id }}" @if ($type->id == $lims_product_data->type)
+                                                            selected
+                                                        @endif>{{ $type->name }}</option>
+                                                    @endforeach
+                                                </option>
                                             </select>
                                             <input type="hidden" name="type_hidden" value="{{$lims_product_data->type}}">
                                         </div>
@@ -155,7 +159,7 @@
                                         <div class="col-md-4">
                                                 <label>{{trans('file.Sale Unit')}}</strong> </label>
                                                 <div class="input-group">
-                                                  <select class="form-control selectpicker" name="sale_unit_id" id="sale-unit"> 
+                                                  <select class="form-control selectpicker" name="sale_unit_id" id="sale-unit">
                                                   </select>
                                                   <input type="hidden" name="sale_unit" value="{{ $lims_product_data->sale_unit_id}}">
                                               </div>
@@ -164,13 +168,13 @@
                                                 <div class="form-group">
                                                     <label>{{trans('file.Purchase Unit')}}</strong> </label>
                                                     <div class="input-group">
-                                                      <select class="form-control selectpicker" name="purchase_unit_id"> 
+                                                      <select class="form-control selectpicker" name="purchase_unit_id">
                                                       </select>
                                                       <input type="hidden" name="purchase_unit" value="{{ $lims_product_data->purchase_unit_id}}">
                                                   </div>
                                                 </div>
-                                        </div>                                
-                                    </div>                                
+                                        </div>
+                                    </div>
                                 </div> -->
                                 <div id="cost" class="col-md-4">
                                     <div class="form-group">
@@ -195,7 +199,7 @@
                                         <input type="number" name="alert_quantity" value="{{$lims_product_data->alert_quantity}}" class="form-control" step="any">
                                     </div>
                                 </div>
-                                <!-- <div class="col-md-4">
+                                 <div class="col-md-4">
                                     <div class="form-group">
                                         <input type="hidden" name="tax" value="{{$lims_product_data->tax_id}}">
                                         <label>{{trans('file.product')}} {{trans('file.Tax')}}</strong> </label>
@@ -206,7 +210,7 @@
                                             @endforeach
                                         </select>
                                     </div>
-                                </div> -->
+                                </div>
                                 <div class="col-md-4">
                                     <div class="form-group">
                                         <input type="hidden" name="tax_method_id" value="{{$lims_product_data->tax_method}}">
@@ -227,6 +231,7 @@
                                         <label>{{trans('file.Featured')}}</label>
                                     </div>
                                 </div>
+                                <br>
                                 <div class="col-md-6">
                                     <div class="form-group">
                                         <label>{{trans('file.Product Image')}}</strong> </label> <i class="dripicons-question" data-toggle="tooltip" title="{{trans('file.You can upload multiple image. Only .jpeg, .jpg, .png, .gif file can be uploaded. First image will be base image.')}}"></i>
@@ -234,7 +239,7 @@
                                         <span class="validation-msg" id="image-error"></span>
                                     </div>
                                 </div>
-                                <div class="col-md-6">
+                                <div class="col-md-12">
                                     <div class="form-group">
                                         <table class="table table-hover">
                                             <thead>
@@ -260,7 +265,7 @@
                                         </table>
                                     </div>
                                 </div>
-                                <div class="col-md-12"> 
+                                <div class="col-md-12">
                                     <div class="form-group">
                                         <label>{{trans('file.Product Details')}}</label>
                                         <textarea name="product_details" class="form-control" rows="5">{{str_replace('@', '"', $lims_product_data->product_details)}}</textarea>
@@ -288,7 +293,7 @@
                                                         {{$warehouse->name}}
                                                     </td>
                                                     <td>
-                                                        <?php 
+                                                        <?php
                                                             $product_warehouse = \App\Product_Warehouse::FindProductWithoutVariant($lims_product_data->id, $warehouse->id)->first();
                                                         ?>
                                                         @if($product_warehouse)
@@ -350,7 +355,7 @@
                                     <input name="promotion" type="checkbox" id="promotion" value="1">&nbsp;
                                     <label><h5>{{trans('file.Add Promotional Price')}}</h5></label>
                                 </div>
-                                
+
                                 <div class="col-md-12">
                                     <div class="row">
                                         <div class="col-md-4" id="promotion_price">   <label>{{trans('file.Promotional Price')}}</label>
@@ -517,10 +522,10 @@
         unitID = $(this).val();
         if(unitID) {
             populate_unit_second(unitID);
-        }else{    
+        }else{
             $('select[name="sale_unit_id"]').empty();
             $('select[name="purchase_unit_id"]').empty();
-        }                        
+        }
     });
 
     var lims_product_code = [ @foreach($lims_product_list as $product)
@@ -702,7 +707,7 @@
             $("#promotion_price").show();
             $("#start_date").show();
             $("#last_date").show();
-        } 
+        }
         else {
             $("#promotion_price").hide();
             $("#start_date").hide();
@@ -795,7 +800,7 @@
         stop: function () {
           var queue = myDropzone.getAcceptedFiles();
           newQueue = [];
-          $('#imageUpload .dz-preview .dz-filename [data-dz-name]').each(function (count, el) {           
+          $('#imageUpload .dz-preview .dz-filename [data-dz-name]').each(function (count, el) {
                 var name = el.innerHTML;
                 queue.forEach(function(file) {
                     if (file.name === name) {

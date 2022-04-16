@@ -8,7 +8,7 @@ class Product extends Model
 {
     protected $fillable =[
 
-        "name", "code", "type", "tax_id", "category_id",  "cost", "price", "qty", "alert_quantity", "promotion", "promotion_price", "starting_date", "last_date",  "tax_method", "image", "file", "is_variant", "is_diffPrice", "featured", "product_list", "qty_list", "price_list", "product_details", "is_active"
+        "name", "code", "type", "tax_id", "category_id",  "cost", "price", "qty", "alert_quantity", "promotion", "promotion_price", "starting_date", "last_date",  "tax_method", "image", "file", "is_variant", "is_diffPrice", "featured", "product_list", "qty_list", "price_list", "product_details", "is_active","user_id"
     ];
 
     public function category()
@@ -35,7 +35,7 @@ class Product extends Model
     {
         return $query->where([
             ['is_active', true],
-            ['type', 'standard']
+
         ]);
     }
 

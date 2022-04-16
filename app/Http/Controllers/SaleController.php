@@ -43,6 +43,7 @@ use Auth;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\Models\Permission;
 use App\Mail\UserNotification;
+use App\Type;
 use Illuminate\Support\Facades\Mail;
 use Srmklive\PayPal\Services\ExpressCheckout;
 use Srmklive\PayPal\Services\AdaptivePayments;
@@ -439,6 +440,10 @@ class SaleController extends Controller
                 $nestedData['grand_total'] = number_format($sale->grand_total, 2);
                 $nestedData['paid_amount'] = number_format($sale->paid_amount, 2);
                 $nestedData['due'] = number_format($sale->grand_total - $sale->paid_amount, 2);
+                $nestedData['cash_payment'] = number_format($sale->cash_payment, 2);
+                $nestedData['card_payment'] = number_format($sale->card_payment, 2);
+                $nestedData['cheque_payment'] = number_format($sale->cheque_payment, 2);
+                $nestedData['e_transfer_payment'] = number_format($sale->e_transfer_payment, 2);
                 $nestedData['options'] = '<div class="btn-group">
                             <button type="button" class="btn btn-default btn-sm dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">'.trans("file.action").'
                               <span class="caret"></span>
@@ -531,21 +536,24 @@ class SaleController extends Controller
     public function store(Request $request)
     {
         $data = $request->all();
-        // dd($data);
+
 		$isHold = false;
+
 		if ( $data['sale_status'] == 3)
 		{
 			$data['sale_status'] = 1;
 			$isHold = true;
+            $data['payment_status'] = 2;
 			if($data['paid_amount'] == '')
 			$data['paid_amount']=0;
 			else
 			$data['paid_amount']=$data['paying_amount'];
 			if($data['paying_amount'] == '')
-			$data['paying_amount']=$data['grand_total'];
-			else
-			$data['paying_amount']=$data['grand_total'];
-		}
+			$data['paying_amount']=0;
+
+		}else{
+            $data['payment_status'] = 4;
+        }
         $paid_amount = 0;
         if(isset($data['paying_amount_array'])){
             for($i=0;$i < count($data['paying_amount_array']);$i++){
@@ -555,7 +563,7 @@ class SaleController extends Controller
                     $data['card_payment'] = $data['paying_amount_array'][$i];
                 }elseif($data['paid_by_id_array'][$i] == 4){
                     $data['cheque_payment'] = $data['paying_amount_array'][$i];
-                }elseif($data['paid_by_id_array'][$i] == 1){
+                }elseif($data['paid_by_id_array'][$i] == 7){
                     $data['e_transfer_payment'] = $data['paying_amount_array'][$i];
                 }
                 $paid_amount += $data['paying_amount_array'][$i];
@@ -577,12 +585,13 @@ class SaleController extends Controller
             $data['reference_no'] = 'posr-' . date("Ymd") . '-'. date("his");
             $balance = $data['grand_total'] - $data['paying_amount'];
 
-            if ($balance > 0 || $balance < 0) {
-                $data['payment_status'] = 2;
+
+
+
+            if(!isset($data['paying_amount_array']))
                 $data['paid_amount']=$data['paying_amount'];
-            }else{
-                $data['payment_status'] = 4;
-            }
+
+
             if($data['draft']) {
 			//DB::enableQueryLog();
                 $lims_sale_data = Sale::find($data['sale_id']);
@@ -624,6 +633,7 @@ class SaleController extends Controller
             $lims_coupon_data->used += 1;
             $lims_coupon_data->save();
         }
+
         $lims_sale_data = Sale::create($data);
         $lims_customer_data = Customer::find($data['customer_id']);
         //collecting male data
@@ -640,6 +650,10 @@ class SaleController extends Controller
         $mail_data['shipping_cost'] = $lims_sale_data->shipping_cost;
         $mail_data['grand_total'] = $lims_sale_data->grand_total;
         $mail_data['paid_amount'] = $lims_sale_data->paid_amount;
+        $mail_data['cash_amount'] = $lims_sale_data->cash_payment;
+        $mail_data['card_amount'] = $lims_sale_data->card_payment;
+        $mail_data['cheque_amount'] = $lims_sale_data->cheque_payment;
+        $mail_data['e_transfer_amount'] = $lims_sale_data->e_transfer_payment;
 //echo '<pre>'; print_r($mail_data); exit;
         $product_id = $data['product_id'];
         $product_code = $data['product_code'];
@@ -655,25 +669,7 @@ class SaleController extends Controller
         foreach ($product_id as $i => $id) {
             $lims_product_data = Product::where('id', $id)->first();
             $product_sale['variant_id'] = null;
-            if($lims_product_data->type == 'combo' && $data['sale_status'] == 1){
-                $product_list = explode(",", $lims_product_data->product_list);
-                $qty_list = explode(",", $lims_product_data->qty_list);
-                $price_list = explode(",", $lims_product_data->price_list);
 
-                foreach ($product_list as $key=>$child_id) {
-                    $child_data = Product::find($child_id);
-                    $child_warehouse_data = Product_Warehouse::where([
-                        ['product_id', $child_id],
-                        ['warehouse_id', $data['warehouse_id'] ],
-                        ])->first();
-
-                    $child_data->qty -= $qty[$i] * $qty_list[$key];
-                    $child_warehouse_data->qty -= $qty[$i] * $qty_list[$key];
-
-                    $child_data->save();
-                    $child_warehouse_data->save();
-                }
-            }
 
             if($sale_unit[$i] != 'n/a') {
                 $lims_sale_unit_data  = Unit::where('unit_name', $sale_unit[$i])->first();
@@ -711,22 +707,72 @@ class SaleController extends Controller
                         $lims_product_warehouse_data->save();
                 }
             }
-            else
+            else{
                 $sale_unit_id = 0;
+                if($data['sale_status'] == 1){
+                    if($lims_product_data->is_variant) {
+                        $lims_product_variant_data = ProductVariant::select('id', 'variant_id', 'qty')->FindExactProductWithCode($id, $product_code[$i])->first();
+                        $product_sale['variant_id'] = $lims_product_variant_data->variant_id;
+                    }
+                    $quantity = $qty[$i];
+                    //deduct quantity
+                    if (!$isHold) {
+                        $lims_product_data->qty = $lims_product_data->qty - $quantity;
+                    }
+                        $lims_product_data->save();
+                    //deduct product variant quantity if exist
+                    if($lims_product_data->is_variant) {
+                        if (!$isHold) {
+                            $lims_product_variant_data->qty -= $quantity;
+                        }
+                        $lims_product_variant_data->save();
+                        $lims_product_warehouse_data = Product_Warehouse::FindProductWithVariant($id, $lims_product_variant_data->variant_id, $data['warehouse_id'])->first();
+                    }
+                    else {
+                        $lims_product_warehouse_data = Product_Warehouse::FindProductWithoutVariant($id, $data['warehouse_id'])->first();
+                    }
+                    //deduct quantity from warehouse
+                    if (!$isHold) {
+                        $lims_product_warehouse_data->qty -= $quantity;
+                    }
+                        $lims_product_warehouse_data->save();
+                }
+            }
             if($product_sale['variant_id']){
                 $variant_data = Variant::select('name')->find($product_sale['variant_id']);
                 $mail_data['products'][$i] = $lims_product_data->name . ' ['. $variant_data->name .']';
             }
             else
                 $mail_data['products'][$i] = $lims_product_data->name;
-            if($lims_product_data->type == 'digital')
-                $mail_data['file'][$i] = url('/public/product/files').'/'.$lims_product_data->file;
-            else
+
                 $mail_data['file'][$i] = '';
             if($sale_unit_id)
                 $mail_data['unit'][$i] = $lims_sale_unit_data->unit_code;
             else
                 $mail_data['unit'][$i] = '';
+
+
+
+            $product_data = Product::where('id',$id)->get();
+            $product_qty = $product_data[0]->qty;
+            $product_alert_qty = $product_data[0]->alert_quantity;
+
+            if($product_qty <= $product_alert_qty ){
+
+                    $users = User::where('id',$product_data[0]->user_id)->where('is_active',true)->get();
+                    $pro = ['products' => $product_data];
+                    if($users && $product_data[0]->alert_quantity !== 0){
+                        foreach ($users as $user) {
+                            Mail::send( 'mail.stock_alert', $pro, function( $message ) use ($user,$product_data)
+                            {
+                                $message->to( $user->email )->subject( "Stock Alert - ".$product_data[0]->name." (".$product_data[0]->code.") " );
+                            });
+                        }
+                    }
+
+
+            }
+
 
             $product_sale['sale_id'] = $lims_sale_data->id ;
             $product_sale['product_id'] = $id;
@@ -768,6 +814,8 @@ class SaleController extends Controller
                 $message = ' Sale created successfully. Please setup your <a href="setting/mail_setting">mail setting</a> to send mail.';
             }
         }
+
+
         if($data['payment_status'] == 3 || $data['payment_status'] == 4 || ($data['payment_status'] == 2 && $data['pos'] && $data['paid_amount'] > 0)) {
 
             if(!isset($data['paid_by_id_array'])){
@@ -878,6 +926,7 @@ class SaleController extends Controller
                     $lims_customer_data->save();
                 }
             }else{
+                $change = 0;
                 for($i=0;$i < count($data['paying_amount_array']);$i++){
                     if($data['paid_by_id_array'][$i] == 1)
                         $paying_method = 'Cash';
@@ -894,6 +943,9 @@ class SaleController extends Controller
                         $paying_method = 'E-Transfer';
                     else
                         $paying_method = 'Deposit';
+                    if($change == 0){
+                        $change = $data['grand_total'];
+                    }
                     $lims_payment_data = new Payment();
                     $lims_payment_data->user_id = Auth::id();
                     if($cash_register_data)
@@ -904,7 +956,7 @@ class SaleController extends Controller
                     $data['payment_reference'] = 'spr-'.date("Ymd").'-'.date("his");
                     $lims_payment_data->payment_reference = $data['payment_reference'];
                     $lims_payment_data->amount = $data['paying_amount_array'][$i];
-                    $lims_payment_data->change = $data['paying_amount_array'][$i] - $data['grand_total'];
+                    $lims_payment_data->change = $data['paying_amount_array'][$i] - $change;
                     $lims_payment_data->paying_method = $paying_method;
                     $lims_payment_data->payment_note = $data['payment_note_array'][$i];
                     //dd($lims_payment_data);
@@ -986,6 +1038,7 @@ class SaleController extends Controller
                         $lims_customer_data->expense += $data['paying_amount_array'][$i];
                         $lims_customer_data->save();
                     }
+                    $change = $change - $data['paying_amount_array'][$i];
                 }
 
             }
@@ -1029,10 +1082,8 @@ class SaleController extends Controller
                 }
                 else
                     $mail_data['products'][$key] = $lims_product_data->name;
-                if($lims_product_data->type == 'digital')
-                    $mail_data['file'][$key] = url('/public/product/files').'/'.$lims_product_data->file;
-                else
-                    $mail_data['file'][$key] = '';
+
+                $mail_data['file'][$key] = '';
                 if($product_sale_data->sale_unit_id){
                     $lims_unit_data = Unit::find($product_sale_data->sale_unit_id);
                     $mail_data['unit'][$key] = $lims_unit_data->unit_code;
@@ -1159,14 +1210,14 @@ class SaleController extends Controller
             $lims_product_warehouse_data = Product::join('product_warehouse', 'products.id', '=', 'product_warehouse.product_id')
             ->where([
                 ['products.is_active', true],
-                //['product_warehouse.warehouse_id', $id],
+                ['product_warehouse.warehouse_id', $id],
                 //['product_warehouse.qty', '>=', 0]
             ])->whereNull('product_warehouse.variant_id')->select('product_warehouse.*')->get();
 
             $lims_product_with_variant_warehouse_data = Product::join('product_warehouse', 'products.id', '=', 'product_warehouse.product_id')
             ->where([
                 ['products.is_active', true],
-                //['product_warehouse.warehouse_id', $id],
+                ['product_warehouse.warehouse_id', $id],
                 //['product_warehouse.qty', '>=', 0]
             ])->whereNotNull('product_warehouse.variant_id')->select('product_warehouse.*')->get();
 		}
@@ -1222,19 +1273,19 @@ class SaleController extends Controller
             $qty_list[] = $lims_product_data->qty_list;
             $product_price[] = $lims_product_data->price + $lims_product_variant_data->additional_price;
         }
-        $lims_product_data = Product::whereNotIn('type', ['standard'])->where('is_active', true)->get();
-        foreach ($lims_product_data as $product)
-        {
-            $product_qty[] = $product->qty;
-            $productwarehouse[]='';
-            $product_code[] =  $product->code;
-            $product_name[] = $product->name;
-            $product_type[] = $product->type;
-            $product_id[] = $product->id;
-            $product_list[] = $product->product_list;
-            $qty_list[] = $product->qty_list;
-            $product_price[] = $product->price;
-        }
+        // $lims_product_data = Product::whereNotIn('type', ['standard'])->where('is_active', true)->get();
+        // foreach ($lims_product_data as $product)
+        // {
+        //     $product_qty[] = $product->qty;
+        //     $productwarehouse[]='';
+        //     $product_code[] =  $product->code;
+        //     $product_name[] = $product->name;
+        //     $product_type[] = $product->type;
+        //     $product_id[] = $product->id;
+        //     $product_list[] = $product->product_list;
+        //     $qty_list[] = $product->qty_list;
+        //     $product_price[] = $product->price;
+        // }
 //////////////////////////////////////////////////////////////
 /*
  		if(Auth::user()->role_id != 1)
@@ -1347,8 +1398,9 @@ class SaleController extends Controller
             }
             $lims_coupon_list = Coupon::where('is_active',true)->get();
             $flag = 0;
+            $categories = Category::where('is_active',true)->get();
 
-            return view('sale.poss', compact('all_permission', 'lims_customer_list', 'lims_customer_group_all', 'lims_warehouse_list', 'lims_product_list', 'product_number', 'lims_tax_list', 'lims_biller_list', 'lims_pos_setting_data', 'lims_brand_list', 'lims_category_list', 'recent_sale', 'recent_draft', 'lims_coupon_list', 'flag', 'lims_account_list'));
+            return view('sale.poss', compact('all_permission', 'categories','lims_customer_list', 'lims_customer_group_all', 'lims_warehouse_list', 'lims_product_list', 'product_number', 'lims_tax_list', 'lims_biller_list', 'lims_pos_setting_data', 'lims_brand_list', 'lims_category_list', 'recent_sale', 'recent_draft', 'lims_coupon_list', 'flag', 'lims_account_list'));
         }
         else
             return redirect()->back()->with('not_permitted', 'Sorry! You are not allowed to access this module');
@@ -1466,6 +1518,18 @@ class SaleController extends Controller
                 // ->join('taxes','products.tax_id','taxes.id')
                 ->get(['products.name as name','products.code as code','product_sales.qty as qty','product_sales.net_unit_price as unit_price','product_sales.tax_rate as tax_rate','products.tax_id as tax_id','products.type as type','products.unit_id as unit_id','products.sale_unit_id as sale_unit_id','products.tax_method as tax_method','products.id as product_id']);
                 //
+            $sale = Sale::where('id',$sale_id)->first();
+            $payments = Payment::where('sale_id',$sale_id)->get();
+
+            foreach($payments as $payment){
+                if($payment->paying_method == "Cheque"){
+                    $payment_with_cheque = PaymentWithCheque::where('payment_id',$payment->id)->first();
+                    $sale['cheque_no'] = $payment_with_cheque['cheque_no'];
+                    $payment_with_cheque->delete();
+                }elseif($payment->paying_method == "Card"){
+                    $payment_with_card = PaymentWithCreditCard::where('payment_id',$payment->id)->delete();
+                }
+            }
 
         }catch(\Illuminate\Database\QueryException $ex){
             dd($ex->getMessage());
@@ -1533,6 +1597,8 @@ class SaleController extends Controller
             $temp_product[] = $product_warehouse->qty;
             $temp_product[] = $pro->qty;
 
+
+
             array_push($product,$temp_product);
 
         }
@@ -1540,12 +1606,66 @@ class SaleController extends Controller
         Sale::where('id',$id)->delete();
         Product_Sale::where('sale_id',$sale_id)->delete();
 
-        return $product;
+        return ['products'=>$product,'sale'=>$sale];
 
     }
 
     public function addMiscItem(Request $request)
     {
+
+        if(auth()->user()->warehouse_id == null){
+            $warehouse = Warehouse::where('is_active',true)->first();
+            $warehouse_id = $warehouse['id'];
+        }else{
+            $warehouse_id = auth()->user()->warehouse_id;
+        }
+        $misc_cat = Category::where('name',"miscellaneous")->first();
+        $misc_type = Type::where('name',"miscellaneous")->first();
+        if($misc_cat !== null){
+
+            $cat_id = $misc_cat['id'];
+        }else{
+            $misc_cat = Category::create(['name'=>"miscellaneous","is_active"=>1]);
+            $cat_id = $misc_cat->id;
+        }
+
+        if($misc_type !== null){
+
+            $type_id = $misc_type['id'];
+        }else{
+            $misc_type = Type::create(['name'=>"miscellaneous","is_active"=>1]);
+            $type_id = $misc_type->id;
+        }
+
+
+        $code = mt_rand(10000000,99999999);
+
+        $add_misc_product = new Product();
+        $add_misc_product->name = $request->name;
+        $add_misc_product->code = $code;
+        $add_misc_product->type = $type_id;
+        $add_misc_product->image = "zummXD2dvAtI.png";
+        $add_misc_product->category_id = $request->category_id;
+        $add_misc_product->cost = $request->cost;
+        $add_misc_product->price = $request->price;
+        $add_misc_product->qty = $request->qty;
+        $add_misc_product->alert_quantity = 0;
+        $add_misc_product->tax_method = 1;
+        $add_misc_product->featured = 1;
+        $add_misc_product->is_active = 1;
+        $add_misc_product->save();
+
+        $product_id = $add_misc_product->id;
+
+        $lims_product_warehouse_data = new Product_Warehouse();
+        $lims_product_warehouse_data->product_id = $product_id;
+        $lims_product_warehouse_data->variant_id = null;
+        $lims_product_warehouse_data->price = $request->price;
+        $lims_product_warehouse_data->warehouse_id = auth()->user()->warehouse_id;
+        $lims_product_warehouse_data->qty = $request->qty;
+        $lims_product_warehouse_data->save();
+
+
 
         if($request->tax == 0){
             $tax_rate = 0;
@@ -1562,17 +1682,17 @@ class SaleController extends Controller
         try {
             $data = array();
             $data['user_id'] = Auth::id();
-            $data['warehouse_id'] = auth()->user()->warehouse_id;
+            $data['warehouse_id'] = $warehouse_id;
             $data['reference_no'] = 'special-order-' . date("Ymd") . '-'. date("his");
             $data['item'] = 1;
             $data['total_qty'] = $request->qty;
             $data['total_discount'] = $request->discount;
             $data['total_tax'] = $total_tax;
-            $data['total_cost'] = $request->total_price;
+            $data['total_cost'] = floatval($request->cost)*$request->qty;
             $data['order_tax_rate'] = $tax_rate;
             $data['order_tax'] = $total_tax;
-            $data['grand_total'] = $request->total_price;
-            $data['paid_amount'] = $request->total_price;
+            $data['grand_total'] = floatval($request->cost)*$request->qty;
+            $data['paid_amount'] = floatval($request->cost)*$request->qty;
             $data['status'] = 1;
             $data['payment_status'] = 2;
             $data['note'] = "This is special order having misc item";
@@ -1583,18 +1703,18 @@ class SaleController extends Controller
             $product_purchase = [];
 
             $product_purchase['purchase_id'] =  $purchase_id->id;
-            $product_purchase['product_id'] = 1471;
+            $product_purchase['product_id'] = $product_id;
             $product_purchase['qty'] = $request->qty;
             $product_purchase['recieved'] = $request->qty;
             $product_purchase['purchase_unit_id'] = 1;
-            $product_purchase['net_unit_cost'] = $request->price;
+            $product_purchase['net_unit_cost'] = $request->cost;
             $product_purchase['discount'] = $request->discount;
             $product_purchase['tax_rate'] = $tax_rate;
             $product_purchase['tax'] = $total_tax;
-            $product_purchase['total'] = $request->total_price;
+            $product_purchase['total'] = floatval($request->cost)*$request->qty;
             ProductPurchase::create($product_purchase);
 
-            $pro = Product::where('id', 1471)->first();
+            $pro = Product::where('id', $product_id)->first();
             $temp_product = [];
             $temp_product[] = $pro["name"];
             $temp_product[] = $pro["code"];
@@ -1606,7 +1726,7 @@ class SaleController extends Controller
             $temp_product[] = 'n/a'. ',';
             $temp_product[] = 'n/a'. ',';
 
-            $temp_product[] = 1471;
+            $temp_product[] = $product_id;
             $temp_product[] = $request->qty;
             $temp_product[] = $request->qty;
             return $temp_product;
@@ -1850,9 +1970,7 @@ class SaleController extends Controller
                 $sale_unit_id = 0;
             //collecting mail data
             $mail_data['products'][$key] = $product['name'];
-            if($product['type'] == 'digital')
-                $mail_data['file'][$key] = url('/public/product/files').'/'.$product['file'];
-            else
+
                 $mail_data['file'][$key] = '';
             if($sale_unit_id)
                 $mail_data['unit'][$key] = $unit[$key]['unit_code'];
@@ -1937,7 +2055,8 @@ class SaleController extends Controller
             $lims_category_list = Category::where('is_active',true)->get();
             $lims_coupon_list = Coupon::where('is_active',true)->get();
 
-            return view('sale.create_sale',compact('lims_biller_list', 'lims_customer_list', 'lims_warehouse_list', 'lims_tax_list', 'lims_sale_data','lims_product_sale_data', 'lims_pos_setting_data', 'lims_brand_list', 'lims_category_list', 'lims_coupon_list', 'lims_product_list', 'product_number', 'lims_customer_group_all'));
+
+            return view('sale.create_sale',compact('lims_biller_list','lims_customer_list', 'lims_warehouse_list', 'lims_tax_list', 'lims_sale_data','lims_product_sale_data', 'lims_pos_setting_data', 'lims_brand_list', 'lims_category_list', 'lims_coupon_list', 'lims_product_list', 'product_number', 'lims_customer_group_all'));
         }
         else
             return redirect()->back()->with('not_permitted', 'Sorry! You are not allowed to access this module');
@@ -2011,25 +2130,8 @@ class SaleController extends Controller
             $old_product_variant_id[] = null;
             $lims_product_data = Product::find($product_sale_data->product_id);
 
-            if( ($lims_sale_data->sale_status == 1) && ($lims_product_data->type == 'combo') ) {
-                $product_list = explode(",", $lims_product_data->product_list);
-                $qty_list = explode(",", $lims_product_data->qty_list);
 
-                foreach ($product_list as $index=>$child_id) {
-                    $child_data = Product::find($child_id);
-                    $child_warehouse_data = Product_Warehouse::where([
-                        ['product_id', $child_id],
-                        ['warehouse_id', $lims_sale_data->warehouse_id ],
-                        ])->first();
-
-                    $child_data->qty += $product_sale_data->qty * $qty_list[$index];
-                    $child_warehouse_data->qty += $product_sale_data->qty * $qty_list[$index];
-
-                    $child_data->save();
-                    $child_warehouse_data->save();
-                }
-            }
-            elseif( ($lims_sale_data->sale_status == 1) && ($product_sale_data->sale_unit_id != 0)) {
+            if( ($lims_sale_data->sale_status == 1) && ($product_sale_data->sale_unit_id != 0)) {
                 $old_product_qty = $product_sale_data->qty;
                 $lims_sale_unit_data = Unit::find($product_sale_data->sale_unit_id);
                 if ($lims_sale_unit_data->operator == '*')
@@ -2051,6 +2153,8 @@ class SaleController extends Controller
                 $lims_product_warehouse_data->qty += $old_product_qty;
                 $lims_product_data->save();
                 $lims_product_warehouse_data->save();
+
+
             }
             if($product_sale_data->variant_id && !(in_array($old_product_variant_id[$key], $product_variant_id)) ){
                 $product_sale_data->delete();
@@ -2061,24 +2165,7 @@ class SaleController extends Controller
         foreach ($product_id as $key => $pro_id) {
             $lims_product_data = Product::find($pro_id);
             $product_sale['variant_id'] = null;
-            if($lims_product_data->type == 'combo' && $data['sale_status'] == 1){
-                $product_list = explode(",", $lims_product_data->product_list);
-                $qty_list = explode(",", $lims_product_data->qty_list);
 
-                foreach ($product_list as $index=>$child_id) {
-                    $child_data = Product::find($child_id);
-                    $child_warehouse_data = Product_Warehouse::where([
-                        ['product_id', $child_id],
-                        ['warehouse_id', $data['warehouse_id'] ],
-                        ])->first();
-
-                    $child_data->qty -= $qty[$key] * $qty_list[$index];
-                    $child_warehouse_data->qty -= $qty[$key] * $qty_list[$index];
-
-                    $child_data->save();
-                    $child_warehouse_data->save();
-                }
-            }
             if($sale_unit[$key] != 'n/a') {
                 $lims_sale_unit_data = Unit::where('unit_name', $sale_unit[$key])->first();
                 $sale_unit_id = $lims_sale_unit_data->id;
@@ -2119,9 +2206,7 @@ class SaleController extends Controller
             else
                 $mail_data['products'][$key] = $lims_product_data->name;
 
-            if($lims_product_data->type == 'digital')
-                $mail_data['file'][$key] = url('/public/product/files').'/'.$lims_product_data->file;
-            else
+
                 $mail_data['file'][$key] = '';
             if($sale_unit_id)
                 $mail_data['unit'][$key] = $lims_sale_unit_data->unit_code;
@@ -3110,25 +3195,8 @@ class SaleController extends Controller
                 $lims_product_data = Product::find($product_sale->product_id);
                 //adjust product quantity
 
-                if( ($lims_sale_data->sale_status == 1) && ($lims_product_data->type == 'combo') ){
-                    $product_list = explode(",", $lims_product_data->product_list);
-                    $qty_list = explode(",", $lims_product_data->qty_list);
 
-                    foreach ($product_list as $index=>$child_id) {
-                        $child_data = Product::find($child_id);
-                        $child_warehouse_data = Product_Warehouse::where([
-                            ['product_id', $child_id],
-                            ['warehouse_id', $lims_sale_data->warehouse_id ],
-                            ])->first();
-
-                        $child_data->qty += $product_sale->qty * $qty_list[$index];
-                        $child_warehouse_data->qty += $product_sale->qty * $qty_list[$index];
-
-                        $child_data->save();
-                        $child_warehouse_data->save();
-                    }
-                }
-                elseif(($lims_sale_data->sale_status == 1) && ($product_sale->sale_unit_id != 0)){
+                if(($lims_sale_data->sale_status == 1) && ($product_sale->sale_unit_id != 0)){
 
                     $lims_sale_unit_data = Unit::find($product_sale->sale_unit_id);
                     if ($lims_sale_unit_data->operator == '*')
@@ -3245,25 +3313,8 @@ class SaleController extends Controller
         foreach ($lims_product_sale_data as $product_sale) {
             $lims_product_data = Product::find($product_sale->product_id);
             //adjust product quantity
-            if( ($lims_sale_data->sale_status == 1) && ($lims_product_data->type == 'combo') ){
-                $product_list = explode(",", $lims_product_data->product_list);
-                $qty_list = explode(",", $lims_product_data->qty_list);
 
-                foreach ($product_list as $index=>$child_id) {
-                    $child_data = Product::find($child_id);
-                    $child_warehouse_data = Product_Warehouse::where([
-                        ['product_id', $child_id],
-                        ['warehouse_id', $lims_sale_data->warehouse_id ],
-                        ])->first();
-
-                    $child_data->qty += $product_sale->qty * $qty_list[$index];
-                    $child_warehouse_data->qty += $product_sale->qty * $qty_list[$index];
-
-                    $child_data->save();
-                    $child_warehouse_data->save();
-                }
-            }
-            elseif(($lims_sale_data->sale_status == 1) && ($product_sale->sale_unit_id != 0)){
+            if(($lims_sale_data->sale_status == 1) && ($product_sale->sale_unit_id != 0)){
                 $lims_sale_unit_data = Unit::find($product_sale->sale_unit_id);
                 if ($lims_sale_unit_data->operator == '*')
                     $product_sale->qty = $product_sale->qty * $lims_sale_unit_data->operation_value;

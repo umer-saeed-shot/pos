@@ -60,6 +60,10 @@
                 <th></th>
                 <th></th>
                 <th></th>
+                <th></th>
+                <th></th>
+                <th></th>
+                <th></th>
             </tfoot>
         </table>
     </div>
@@ -368,6 +372,7 @@
     var public_key = <?php echo json_encode($lims_pos_setting_data->stripe_public_key) ?>;
     var all_permission = <?php echo json_encode($all_permission) ?>;
     var sale_id = [];
+    console.log(all_permission);
     var user_verified = <?php echo json_encode(env('USER_VERIFIED')) ?>;
 
     $.ajaxSetup({
@@ -395,12 +400,14 @@
 
     $(document).on("click", "tr.sale-link td:not(:first-child, :last-child)", function() {
         var sale = $(this).parent().data('sale');
-        saleDetails(sale);
+        var payment_breakdown = $(this).parent().data('payment-breakdown');
+        saleDetails(sale,payment_breakdown);
     });
 
     $(document).on("click", ".view", function(){
         var sale = $(this).parent().parent().parent().parent().parent().data('sale');
-        saleDetails(sale);
+        var payment_breakdown = $(this).parent().parent().parent().parent().parent().data('payment-breakdown');
+        saleDetails(sale,payment_breakdown);
     });
 
     $("#print-btn").on("click", function(){
@@ -694,8 +701,10 @@
             }
         },
         "createdRow": function( row, data, dataIndex ) {
+
             $(row).addClass('sale-link');
             $(row).attr('data-sale', data['sale']);
+            $(row).attr('data-payment-breakdown', data['card_payment']+','+data['cash_payment']+','+data['cheque_payment']+','+data['e_transfer_payment']);
         },
         "columns": [
             {"data": "key"},
@@ -801,6 +810,7 @@
                         $(':checkbox:checked').each(function(i){
                             if(i){
                                 var sale = $(this).closest('tr').data('sale');
+                                var payment_breakdown = $(this).closest('tr').data('payment-breakdown');
                                 sale_id[i-1] = sale[13];
                             }
                         });
@@ -840,21 +850,22 @@
         if (dt_selector.rows( '.selected' ).any() && is_calling_first) {
             var rows = dt_selector.rows( '.selected' ).indexes();
 
-            $( dt_selector.column( 7 ).footer() ).html(dt_selector.cells( rows, 7, { page: 'current' } ).data().sum().toFixed(2));
             $( dt_selector.column( 8 ).footer() ).html(dt_selector.cells( rows, 8, { page: 'current' } ).data().sum().toFixed(2));
             $( dt_selector.column( 9 ).footer() ).html(dt_selector.cells( rows, 9, { page: 'current' } ).data().sum().toFixed(2));
+            $( dt_selector.column( 10 ).footer() ).html(dt_selector.cells( rows, 10, { page: 'current' } ).data().sum().toFixed(2));
         }
         else {
-            $( dt_selector.column( 7 ).footer() ).html(dt_selector.cells( rows, 7, { page: 'current' } ).data().sum().toFixed(2));
             $( dt_selector.column( 8 ).footer() ).html(dt_selector.cells( rows, 8, { page: 'current' } ).data().sum().toFixed(2));
             $( dt_selector.column( 9 ).footer() ).html(dt_selector.cells( rows, 9, { page: 'current' } ).data().sum().toFixed(2));
+            $( dt_selector.column( 10 ).footer() ).html(dt_selector.cells( rows, 10, { page: 'current' } ).data().sum().toFixed(2));
         }
     }
 
-    function saleDetails(sale){
+    function saleDetails(sale,payment_breakdown){
+        var breakdown = payment_breakdown.split(',');
         $("#sale-details input[name='sale_id']").val(sale[13]);
 
-        var htmltext = '<strong>{{trans("file.Date")}}: </strong>'+sale[0]+'<br><strong>{{trans("file.reference")}}: </strong>'+sale[1]+'<br><strong>{{trans("file.Warehouse")}}: </strong>'+sale[27]+'<br><strong>{{trans("file.Sale Status")}}: </strong>'+sale[2]+'<br><br><div class="row"><div class="col-md-6"><strong>{{trans("file.From")}}:</strong><br>'+sale[3]+'<br>'+sale[4]+'<br>'+sale[5]+'<br>'+sale[6]+'<br>'+sale[7]+'<br>'+sale[8]+'</div><div class="col-md-6"><div class="float-right"><strong>{{trans("file.To")}}:</strong><br>'+sale[9]+'<br>'+sale[10]+'<br>'+sale[11]+'<br>'+sale[12]+'</div></div></div>';
+        var htmltext = '<strong>{{trans("file.Date")}}: </strong>'+sale[0]+'<br><strong>{{trans("file.reference")}}: </strong>'+sale[1]+'<br><strong>{{trans("file.Warehouse")}}: </strong>'+sale[27]+'<br><strong>{{trans("file.Sale Status")}}: </strong>'+sale[2]+'<br><br><div class="row"><div class="col-md-6"><strong>{{trans("file.From")}}:</strong><br>'+sale[3]+'<br>'+sale[4]+'<br>'+sale[5]+'<br>'+sale[6]+'<br>'+sale[7]+'<br>'+sale[8]+'</div><div class="col-md-6"><div class="float-right"><strong>{{trans("file.To")}}:</strong><br>'+sale[9]+'<br>'+sale[10]+'<br>'+sale[11]+'<br>'+sale[12]+'</div></div></div></div><div class="col-md-12"><h2>Payment Breakdown</h2><br><div class="col-md-6"><strong>Card: </strong>'+breakdown[0]+'</div><div class="col-md-6"><strong>Cash: </strong>'+breakdown[1]+'</div><div class="col-md-6"><strong>Cheque: </strong>'+breakdown[2]+'</div><div class="col-md-6"><strong>E-Transfer: </strong>'+breakdown[3]+'</div></div>';
         $.get('sales/product_sale/' + sale[13], function(data){
             $(".product-sale-list tbody").remove();
             var name_code = data[0];
